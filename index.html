@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>IJA Maths — Answer</title>
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#CC0022;--red-dark:#8B0016;--white:#FFFFFF;--offwhite:#FFF5F6;
+  --yellow:#FFD600;--blue:#006FFF;--orange:#FF6A00;--purple:#8B00E6;--teal:#00B8D4;
+  --green:#00C853;--gray:#F2F2F5;--gray2:#E0E0E8;--text:#1A1A2E;--muted:#999;
+}
+html,body{height:100%;min-height:100vh;background:var(--offwhite);color:var(--text);font-family:'Nunito',sans-serif;-webkit-tap-highlight-color:transparent}
+body{display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:var(--red);padding:11px 16px 9px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 3px 14px rgba(0,0,0,.18)}
+.hdr-school{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:white;line-height:1.1}
+.hdr-sub{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--yellow)}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.sdot{width:9px;height:9px;border-radius:50%;background:#ccc;transition:background .3s}
+.sdot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+.sdot.error{background:var(--orange)}
+.hdr-badge{width:36px;height:36px;border-radius:50%;background:white;border:2.5px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:17px;color:var(--red);animation:hdr-pulse 2.2s ease-in-out infinite}
+@keyframes hdr-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* TIMER BAR (mobile — compact) */
+.m-timer-strip{background:white;border-bottom:2.5px solid var(--gray2);padding:7px 14px;display:none;align-items:center;gap:10px;flex-shrink:0}
+.m-timer-strip.visible{display:flex}
+.m-timer-label{font-family:'Fredoka One',cursive;font-size:18px;color:var(--red);min-width:38px;text-align:right;flex-shrink:0;transition:color .3s}
+.m-timer-label.urgent{color:var(--orange);animation:t-blink .4s ease-in-out infinite}
+@keyframes t-blink{0%,100%{opacity:1}50%{opacity:.4}}
+.m-timer-track{flex:1;height:12px;background:rgba(204,0,34,.1);border-radius:100px;overflow:hidden;border:2px solid rgba(204,0,34,.12)}
+.m-timer-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--red),#FF1A3C);transition:width .9s linear,background .3s;width:100%}
+.m-timer-fill.urgent{background:linear-gradient(90deg,var(--orange),#FFAA00)}
+.m-timer-fill.done{background:#ccc;width:0%!important;transition:none}
+.m-timeup{display:none;font-family:'Fredoka One',cursive;font-size:12px;background:var(--orange);color:white;padding:3px 10px;border-radius:100px;flex-shrink:0}
+.m-timeup.show{display:block}
+
+/* NAME SCREEN */
+#name-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px 20px;gap:16px;background:white;position:relative;overflow:hidden}
+#name-screen::before{content:'';position:fixed;top:0;left:0;right:0;height:40vh;background:var(--red);clip-path:ellipse(80% 100% at 50% 0%);z-index:0}
+.name-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:340px}
+.name-trophy{width:82px;height:82px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 0 0 6px rgba(255,255,255,.3),0 8px 28px rgba(0,0,0,.15);animation:trophy-bob 2s ease-in-out infinite}
+@keyframes trophy-bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-10px) rotate(3deg)}}
+.name-title{font-family:'Fredoka One',cursive;font-size:24px;color:white;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.15)}
+.name-sub{font-size:13px;font-weight:700;color:rgba(255,255,255,.8);text-align:center;max-width:250px;line-height:1.5}
+.name-card{background:white;border-radius:20px;width:100%;padding:20px 18px;box-shadow:0 8px 32px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:11px}
+.name-input{width:100%;background:var(--offwhite);border:2.5px solid var(--gray2);border-radius:13px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;padding:13px 15px;outline:none;text-align:center;transition:border-color .2s,box-shadow .2s}
+.name-input:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(204,0,34,.1)}
+.name-input::placeholder{color:#ccc;font-weight:700}
+.btn-join{width:100%;background:var(--red);color:white;border:none;border-radius:13px;font-family:'Fredoka One',cursive;font-size:17px;padding:14px;cursor:pointer;box-shadow:0 5px 0 var(--red-dark),0 8px 22px rgba(204,0,34,.28);transition:transform .12s}
+.btn-join:active{transform:translateY(2px)}
+
+/* GAME SCREEN */
+#game-screen{flex:1;display:none;flex-direction:column;overflow-y:auto;background:var(--offwhite)}
+.player-bar{background:white;border-bottom:2.5px solid var(--gray2);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.player-info{display:flex;align-items:center;gap:7px}
+.player-avatar{width:30px;height:30px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:13px;color:white;flex-shrink:0}
+.player-name-text{font-size:13px;font-weight:800;color:var(--text)}
+.score-pill{background:var(--yellow);color:var(--text);font-family:'Fredoka One',cursive;font-size:13px;padding:4px 12px;border-radius:100px;box-shadow:0 2px 0 #A87C00}
+
+/* Waiting */
+.wait-block{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 18px;gap:14px;text-align:center}
+.wait-spinner{width:66px;height:66px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 0 8px rgba(204,0,34,.12),0 0 0 16px rgba(204,0,34,.06);animation:wait-wobble 2s ease-in-out infinite}
+@keyframes wait-wobble{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(10deg) scale(1.06)}}
+.wait-label{font-family:'Fredoka One',cursive;font-size:19px;color:var(--red);animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+.wait-sub-text{font-size:12px;font-weight:700;color:var(--muted);max-width:210px;line-height:1.5}
+
+/* Question block */
+#question-block{display:none;flex-direction:column;padding:0 0 22px}
+.q-top-bar{background:var(--red);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.q-num-tag{font-family:'Fredoka One',cursive;font-size:13px;color:white}
+.q-pts-tag{background:var(--yellow);color:var(--red-dark);font-family:'Fredoka One',cursive;font-size:12px;padding:3px 11px;border-radius:100px;box-shadow:0 2px 0 #A87C00}
+.q-text-card{margin:12px 14px 10px;background:white;border-radius:16px;padding:14px 16px;border-left:5px solid var(--red);box-shadow:0 3px 14px rgba(0,0,0,.07)}
+.q-text{font-family:'Baloo 2',cursive;font-size:15px;font-weight:700;color:var(--text);line-height:1.5}
+.q-text .katex{font-size:15px!important}
+
+.result-banner{margin:0 14px 10px;border-radius:15px;padding:13px 16px;text-align:center;font-family:'Fredoka One',cursive;font-size:19px;animation:banner-pop .35s cubic-bezier(.34,1.56,.64,1);display:none}
+@keyframes banner-pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.result-banner.correct{background:rgba(0,200,83,.12);border:2.5px solid var(--green);color:var(--green)}
+.result-banner.wrong{background:rgba(255,106,0,.1);border:2.5px solid var(--orange);color:var(--orange)}
+
+.options-list{padding:0 12px;display:flex;flex-direction:column;gap:9px}
+.opt-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:15px;cursor:pointer;transition:transform .15s,opacity .2s;text-align:left;width:100%;border:none;position:relative;overflow:hidden}
+.opt-btn::after{content:'';position:absolute;top:0;right:0;width:50%;height:100%;background:rgba(255,255,255,.09);clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);pointer-events:none}
+.opt-btn:active{transform:scale(.96)}
+.opt-btn[data-opt="A"]{background:var(--blue);box-shadow:0 5px 0 #004ABB}
+.opt-btn[data-opt="B"]{background:var(--orange);box-shadow:0 5px 0 #B84900}
+.opt-btn[data-opt="C"]{background:var(--purple);box-shadow:0 5px 0 #5800A0}
+.opt-btn[data-opt="D"]{background:var(--teal);box-shadow:0 5px 0 #007A8E}
+.opt-letter-badge{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.22);border:2.5px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:14px;color:white;transition:all .2s;position:relative;z-index:1}
+.opt-text{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:white;line-height:1.3;position:relative;z-index:1;flex:1}
+.opt-text .katex{color:white!important;font-size:14px!important}
+.opt-btn.selected{box-shadow:0 5px 0 rgba(0,0,0,.3),0 0 0 3px var(--yellow)!important;transform:scale(1.02)!important}
+.opt-btn.selected .opt-letter-badge{background:white!important;border-color:white!important}
+.opt-btn[data-opt="A"].selected .opt-letter-badge{color:var(--blue)}
+.opt-btn[data-opt="B"].selected .opt-letter-badge{color:var(--orange)}
+.opt-btn[data-opt="C"].selected .opt-letter-badge{color:var(--purple)}
+.opt-btn[data-opt="D"].selected .opt-letter-badge{color:var(--teal)}
+.opt-btn.correct{background:var(--green)!important;box-shadow:0 5px 0 #007A30,0 0 0 3px rgba(0,200,83,.3)!important}
+.opt-btn.correct .opt-letter-badge{background:white!important;color:var(--green)!important;border-color:white!important}
+.opt-btn.wrong{opacity:.3!important;filter:grayscale(.7)!important;transform:scale(.97)!important;box-shadow:none!important}
+.opt-btn:disabled{cursor:default}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="hdr-school">Infant Jesus Academy</div>
+    <div class="hdr-sub">★ Mathematics Competition ★</div>
+  </div>
+  <div class="hdr-right">
+    <div class="sdot" id="sdot"></div>
+    <div class="hdr-badge">∑</div>
+  </div>
+</div>
+
+<!-- MOBILE TIMER STRIP -->
+<div class="m-timer-strip" id="m-timer-strip">
+  <div class="m-timer-label" id="m-timer-label">30s</div>
+  <div class="m-timer-track"><div class="m-timer-fill" id="m-timer-fill"></div></div>
+  <div class="m-timeup" id="m-timeup">⏰ Time Up!</div>
+</div>
+
+<!-- NAME SCREEN -->
+<div id="name-screen">
+  <div class="name-content">
+    <div class="name-trophy">🏆</div>
+    <div class="name-title">Ready to Play?</div>
+    <div class="name-sub">Enter your name and join the Maths Challenge!</div>
+    <div class="name-card">
+      <input type="text" class="name-input" id="name-input" placeholder="Your full name" maxlength="40" autocomplete="off">
+      <button class="btn-join" onclick="joinGame()">🚀 JOIN THE CHALLENGE!</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="player-bar">
+    <div class="player-info">
+      <div class="player-avatar" id="player-avatar">?</div>
+      <div class="player-name-text" id="player-name-display">Player</div>
+    </div>
+    <div class="score-pill">⭐ <span id="score-display">0</span> pts</div>
+  </div>
+
+  <!-- Waiting -->
+  <div class="wait-block" id="wait-block">
+    <div class="wait-spinner">⏳</div>
+    <div class="wait-label">Waiting…</div>
+    <div class="wait-sub-text">The host is getting the next question ready!</div>
+  </div>
+
+  <!-- Question -->
+  <div id="question-block">
+    <div class="q-top-bar">
+      <div class="q-num-tag" id="p-q-num">Q 1 of 10</div>
+      <div class="q-pts-tag" id="p-q-pts">10 pts</div>
+    </div>
+    <div class="q-text-card">
+      <div class="q-text" id="p-q-text"></div>
+    </div>
+    <div class="result-banner" id="result-banner"></div>
+    <div class="options-list" id="p-options"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwqj7uX5150SC8_172OLmZwP8DplMIL5jbT2ppO1WBBEqEeUE2kHmojAMgCNV740_tJ/exec';
+const POLL_MS = 2000;
+
+let playerName='', score=0, lastQId=0, lastPhase='', myAnswer=null, answered=false, lastQ=null;
+let timerInterval=null, timerDuration=30, timerStarted=0, clockOffset=0;
+
+function renderLatex(el){
+  if(!window.renderMathInElement) return;
+  renderMathInElement(el,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false});
+}
+
+// ── Timer ─────────────────────────────────────────────────────
+function startTimer(duration, started, serverTime){
+  clearInterval(timerInterval);
+  timerDuration=duration; timerStarted=started;
+  clockOffset=(serverTime||Date.now())-Date.now();
+
+  const strip=document.getElementById('m-timer-strip');
+  const fill =document.getElementById('m-timer-fill');
+  const label=document.getElementById('m-timer-label');
+  const badge=document.getElementById('m-timeup');
+
+  if(!started||started===0){strip.classList.remove('visible');return}
+  strip.classList.add('visible');
+  badge.classList.remove('show');
+  fill.classList.remove('urgent','done');
+  label.classList.remove('urgent');
+
+  timerInterval=setInterval(()=>{
+    const now=Date.now()+clockOffset;
+    const elapsed=Math.floor((now-timerStarted)/1000);
+    const remaining=Math.max(0,duration-elapsed);
+    const pct=(remaining/duration)*100;
+    label.textContent=remaining+'s';
+    fill.style.width=pct+'%';
+    if(remaining<=10){fill.classList.add('urgent');label.classList.add('urgent')}
+    else{fill.classList.remove('urgent');label.classList.remove('urgent')}
+    if(remaining===0){
+      clearInterval(timerInterval);fill.classList.add('done');
+      badge.classList.add('show');label.textContent='0s';label.classList.remove('urgent');
+      // Auto-lock if not answered
+      if(!answered){answered=true;document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true)}
+    }
+  },200);
+}
+function stopTimer(){clearInterval(timerInterval);document.getElementById('m-timer-strip').classList.remove('visible')}
+
+// ── Join ─────────────────────────────────────────────────────
+function joinGame(){
+  const n=document.getElementById('name-input').value.trim();
+  if(!n){document.getElementById('name-input').style.borderColor='var(--red)';document.getElementById('name-input').placeholder='Enter your name first! 👆';return}
+  playerName=n;
+  document.getElementById('name-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  document.getElementById('player-name-display').textContent=n;
+  document.getElementById('player-avatar').textContent=n.charAt(0).toUpperCase();
+  poll();setInterval(poll,POLL_MS);
+}
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame()});
+
+// ── Build options ─────────────────────────────────────────────
+function buildOptions(q){
+  const el=document.getElementById('p-options');el.innerHTML='';
+  ['A','B','C','D'].forEach(letter=>{
+    if(!q.options[letter]) return;
+    const btn=document.createElement('button');btn.className='opt-btn';btn.id='popt-'+letter;btn.setAttribute('data-opt',letter);
+    btn.innerHTML=`<div class="opt-letter-badge">${letter}</div><div class="opt-text">${q.options[letter]}</div>`;
+    btn.onclick=()=>selectAnswer(letter);
+    el.appendChild(btn);
+    renderLatex(btn.querySelector('.opt-text'));
+  });
+}
+
+function selectAnswer(letter){
+  if(answered) return;
+  myAnswer=letter; answered=true;
+  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+  const sel=document.getElementById('popt-'+letter);
+  if(sel) sel.classList.add('selected');
+}
+
+function applyReveal(correct){
+  const banner=document.getElementById('result-banner');
+  if(myAnswer===correct){
+    const pts=(lastQ&&lastQ.points)||10;score+=pts;
+    document.getElementById('score-display').textContent=score;
+    banner.innerHTML=`🎉 Correct! <strong>+${pts} pts</strong>`;
+    banner.className='result-banner correct';banner.style.display='block';
+    const sel=document.getElementById('popt-'+myAnswer);if(sel){sel.classList.remove('selected');sel.classList.add('correct')}
+  } else if(myAnswer){
+    banner.innerHTML=`😬 Wrong! The answer was <strong>${correct}</strong>`;
+    banner.className='result-banner wrong';banner.style.display='block';
+    const sel=document.getElementById('popt-'+myAnswer);if(sel){sel.classList.remove('selected');sel.classList.add('wrong')}
+  } else {
+    banner.innerHTML=`⏱ Time's up! The answer was <strong>${correct}</strong>`;
+    banner.className='result-banner wrong';banner.style.display='block';
+  }
+  const cor=document.getElementById('popt-'+correct);if(cor&&myAnswer!==correct)cor.classList.add('correct');
+  stopTimer();
+}
+
+// ── Poll ──────────────────────────────────────────────────────
+async function poll(){
+  try{
+    const res=await fetch(API_URL+'?action=getState',{redirect:'follow'});
+    const data=await res.json();
+    document.getElementById('sdot').className='sdot live';
+
+    const newQ=data.question&&data.question.id!==lastQId;
+    const newPh=data.phase!==lastPhase;
+
+    if(data.phase==='waiting'){
+      document.getElementById('wait-block').style.display='flex';
+      document.getElementById('question-block').style.display='none';
+      stopTimer();
+    }
+
+    if(data.phase==='question'){
+      document.getElementById('wait-block').style.display='none';
+      document.getElementById('question-block').style.display='flex';
+      if(newQ&&data.question){
+        myAnswer=null;answered=false;lastQ=data.question;
+        document.getElementById('p-q-num').textContent=`Q ${data.question.id} of ${data.totalQuestions}`;
+        document.getElementById('p-q-pts').textContent=`${data.question.points} pts`;
+        const qt=document.getElementById('p-q-text');qt.textContent=data.question.text;renderLatex(qt);
+        document.getElementById('result-banner').style.display='none';
+        buildOptions(data.question);lastQId=data.question.id;
+      }
+      // Timer
+      if(data.timerStarted&&data.timerStarted>0&&(data.timerStarted!==timerStarted||newQ)){
+        startTimer(data.timerDuration,data.timerStarted,data.serverTime);
+      }
+    }
+
+    if(data.phase==='reveal'&&newPh&&data.question&&data.question.correct){
+      applyReveal(data.question.correct);
+    }
+
+    lastPhase=data.phase;
+  }catch(e){document.getElementById('sdot').className='sdot error'}
+}
+
+if(API_URL==='YOUR_GAS_WEB_APP_URL_HERE'){
+  document.querySelector('.name-sub').textContent='⚠️ API_URL not set in this file yet.';
+  document.querySelector('.btn-join').disabled=true;
+  document.querySelector('.btn-join').textContent='Setup Required';
+}
+</script>
+</body>
+</html>
