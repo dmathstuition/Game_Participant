@@ -5,6 +5,7 @@
 <title>IJA Quiz — Competitor</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -490,7 +491,10 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 
 <script>
 /* PARTICLE BG */
-(function(){const c=document.getElementById('bg'),ctx=c.getContext('2d');let W,H,stars=[];function resize(){W=c.width=innerWidth;H=c.height=innerHeight;stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.2,a:Math.random()*Math.PI*2,v:Math.random()*.3+.1,vx:(Math.random()-.5)*.07,vy:(Math.random()-.5)*.07,red:Math.random()<.25});}resize();addEventListener('resize',resize);function draw(){ctx.clearRect(0,0,W,H);stars.forEach(s=>{s.a+=s.v*.015;s.x+=s.vx;s.y+=s.vy;if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;const alpha=.06+.15*Math.sin(s.a);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.red?`rgba(192,21,42,${alpha})`:`rgba(220,200,200,${alpha*.6})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+(function(){const c=document.getElementById('bg'),ctx=c.getContext('2d');let W,H,stars=[];let serverOffset = 0;
+function initServerOffset(){firebase.database().ref('/.info/serverTimeOffset').on('value',snap=>{serverOffset=snap.val()||0;});}
+function serverNow(){return Date.now()+serverOffset;}
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight;stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.2,a:Math.random()*Math.PI*2,v:Math.random()*.3+.1,vx:(Math.random()-.5)*.07,vy:(Math.random()-.5)*.07,red:Math.random()<.25});}resize();addEventListener('resize',resize);function draw(){ctx.clearRect(0,0,W,H);stars.forEach(s=>{s.a+=s.v*.015;s.x+=s.vx;s.y+=s.vy;if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;const alpha=.06+.15*Math.sin(s.a);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.red?`rgba(192,21,42,${alpha})`:`rgba(220,200,200,${alpha*.6})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
 
 /* AUDIO */
 let audioCtx=null,muted=false;
@@ -525,15 +529,24 @@ function loadCfgInputs(){const c=getCfg();if(!c)return;sv('cfg-key',c.apiKey||''
 function connectAndSave(){const c={apiKey:gv('cfg-key'),databaseURL:gv('cfg-db'),projectId:gv('cfg-pid'),authDomain:gv('cfg-auth')};if(!c.apiKey||!c.databaseURL){cfgMsg('Enter API Key and Database URL','e');return;}localStorage.setItem('ija_cfg',JSON.stringify(c));initFB(c,true);}
 function cfgMsg(msg,t){const el=document.getElementById('cfg-msg');el.style.display='block';el.className='cfg-msg '+(t==='s'?'cfg-ok':'cfg-err');el.textContent=msg;}
 function initFB(cfg,fs){try{if(firebase.apps.length)firebase.app().delete().then(()=>startFB(cfg,fs));else startFB(cfg,fs);}catch(e){startFB(cfg,fs);}}
-function startFB(cfg,fs){try{firebase.initializeApp(cfg);db=firebase.database();if(fs){cfgMsg('✓ Connected!','s');setTimeout(checkSaved,600);}else checkSaved();}catch(e){if(fs)cfgMsg('Error: '+e.message,'e');}}
+function startFB(cfg,fs){try{firebase.initializeApp(cfg);db=firebase.database();initServerOffset();if(fs){cfgMsg('✓ Connected!','s');setTimeout(checkSaved,600);}else checkSaved();}catch(e){if(fs)cfgMsg('Error: '+e.message,'e');}}
 function checkSaved(){const sid=localStorage.getItem('ija_pid'),sn=localStorage.getItem('ija_name');if(sid&&sn){myId=sid;myName=sn;goLobby();}else sc('s-join');}
 
 /* JOIN */
 function joinGame(){
-  const name=gv('name-inp');if(!name){setErr('Enter your name');return;}if(!db){setErr('Not connected');return;}
-  myName=name;myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  localStorage.setItem('ija_pid',myId);localStorage.setItem('ija_name',myName);
-  registerPlayer();goLobby();
+  const name = gv('name-inp');
+  if (!name) { setErr('Enter your name'); return; }
+
+  firebase.auth().signInAnonymously()
+    .then(cred => {
+      myId = cred.user.uid;
+      myName = name;
+      localStorage.setItem('ija_pid', myId);
+      localStorage.setItem('ija_name', myName);
+      registerPlayer();
+      goLobby();
+    })
+    .catch(err => setErr('Connection error: ' + err.message));
 }
 /* FIX: doRelogin clears saved identity so they get a fresh ID */
 function doRelogin(){
@@ -615,7 +628,7 @@ function handleStd(state){
 }
 function renderSecIntro(){const i=gs.intro||{};t('sec-name',i.name||'Section');t('sec-count',(i.totalQ||0)+' questions');}
 function renderQ(){
-  if(!gs.cq)return;const q=gs.cq;qStart=q.startTime||Date.now();hasAnswered=false;myLastAnswer=null;
+  if(!gs.cq)return;const q=gs.cq;qStart=q.startTime||serverNow();hasAnswered=false;myLastAnswer=null;
   t('q-num-tag','Q'+(q.index+1)+' / '+(q.total||'?'));
   const sn=toArray(gs.sections)[q.sectionIndex]?.name||('Section '+((q.sectionIndex||0)+1));
   t('q-sec-tag',sn);
@@ -624,7 +637,7 @@ function renderQ(){
   startTimer(q.timeLimit,q.startTime,'ctimer','t-fill',()=>{if(!hasAnswered)autoTimeout();});
 }
 function pickStd(opt){
-  if(hasAnswered||gs.state!=='question_active')return;hasAnswered=true;myLastAnswer=opt;myTimeTaken=Math.min((Date.now()-qStart)/1000,gs.cq?.timeLimit||30);
+  if(hasAnswered||gs.state!=='question_active')return;hasAnswered=true;myLastAnswer=opt;myTimeTaken=Math.min((serverNow()-qStart)/1000,gs.cq?.timeLimit||30);
   if(db&&myId){db.ref('quiz/players/'+myId+'/lastAnswer').set(opt);db.ref('quiz/players/'+myId+'/answered').set(true);db.ref('quiz/roundAnswers/'+myId).set({answer:opt,timeTaken:myTimeTaken});}
   lockOpts('q-opts');document.getElementById('ob-'+opt)?.classList.add('sel');setTimeout(()=>sc('s-waiting'),400);
 }
@@ -656,12 +669,12 @@ function renderTBQ(q,isBonus){
   const mb=document.getElementById('tq-marks-badge');mb.className='marks-badge '+(isBonus?'b':'n');mb.textContent=isBonus?'2 marks (bonus)':'5 marks';
   const el=document.getElementById('tq-text');el.textContent=q.text;el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
   document.getElementById('tq-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="tbob-${o}" onclick="pickTB('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
-  tbAnswered=false;tbLastAnswer=null;tbQStart=q.startTime||Date.now();tbTimeTaken=0;tbLastTick=-1;
+  tbAnswered=false;tbLastAnswer=null;tbQStart=q.startTime||serverNow();tbTimeTaken=0;tbLastTick=-1;
   if(isBonus)playBonus();
   startTBTimer(q.timeLimit,q.startTime);sc('s-team-q');
 }
 function pickTB(opt){
-  if(tbAnswered||tb.state==='reveal')return;tbAnswered=true;tbLastAnswer=opt;tbTimeTaken=Math.min((Date.now()-tbQStart)/1000,tb.cq?.timeLimit||30);
+  if(tbAnswered||tb.state==='reveal')return;tbAnswered=true;tbLastAnswer=opt;tbTimeTaken=Math.min((serverNow()-tbQStart)/1000,tb.cq?.timeLimit||30);
   if(db&&myId){db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);db.ref('quiz/tb/members/'+myId+'/answered').set(true);db.ref('quiz/tb/lock').transaction(cur=>{if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};return cur;});}
   lockOpts('tq-opts');document.getElementById('tbob-'+opt)?.classList.add('sel');
 }
@@ -679,7 +692,7 @@ function showTBResult(correct){
 }
 function startTBTimer(limit,startTime){
   clearTBTimer();const el=document.getElementById('tb-ctimer'),fill=document.getElementById('tb-t-fill');
-  function tick(){const left=Math.max(0,limit-(Date.now()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=5;el.className='ctimer-box'+(low?' low':'');fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':tb.cq?.isBonus?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';const s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}if(left<=0)clearTBTimer();}
+  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=5;el.className='ctimer-box'+(low?' low':'');fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':tb.cq?.isBonus?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';const s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}if(left<=0)clearTBTimer();}
   tick();tbTimerInt=setInterval(tick,250);
 }
 function clearTBTimer(){clearInterval(tbTimerInt);tbTimerInt=null;}
@@ -711,7 +724,7 @@ function showSpeedQ(qs,idx,total){
   document.getElementById('sp-prog').style.width=(((total-idx)/total)*100)+'%';
   const el=document.getElementById('sp-q-text');el.textContent=q.text;el.className='sp-q-text'+(q.text.length>60?' long':'');
   document.getElementById('sp-opts').innerHTML=ALPHA.map(o=>`<button class="sp-opt ${o}" id="spob-${o}" onclick="pickSpeed('${o}','${q.answer}',${idx},${total})"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
-  startSpeedTimer(15,Date.now(),q.answer,qs,idx,total);
+  startSpeedTimer(15,serverNow(),q.answer,qs,idx,total);
 }
 function pickSpeed(opt,correct,idx,total){
   clearSpeedTimer();const isOk=opt===correct;if(isOk)spScore++;
@@ -724,7 +737,7 @@ function pickSpeed(opt,correct,idx,total){
 }
 function startSpeedTimer(limit,startTime,correct,qs,idx,total){
   clearSpeedTimer();const el=document.getElementById('sp-timer'),fill=document.getElementById('sp-prog');
-  function tick(){const left=Math.max(0,limit-(Date.now()-startTime)/1000),pct=left/limit;el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';const low=left<=5;el.className='sp-timer'+(low?' low':'');if(low&&Math.ceil(left)>0)playTick();
+  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';const low=left<=5;el.className='sp-timer'+(low?' low':'');if(low&&Math.ceil(left)>0)playTick();
   if(left<=0){clearSpeedTimer();ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});playNoAnswer();if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}setTimeout(()=>showSpeedQ(qs,idx+1,total),600);}
   }tick();spTimerInt=setInterval(tick,250);
 }
@@ -745,7 +758,7 @@ function finishSpeed(score,total){
 /* TIMER */
 function startTimer(limit,startTime,timerId,fillId,onExpire){
   clearTimer();const el=document.getElementById(timerId),fill=document.getElementById(fillId);
-  function tick(){const left=Math.max(0,limit-(Date.now()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=8,mid=left<=15;fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';el.className='ctimer-box'+(low?' low':'');const s=Math.ceil(left);if(low&&s!==lastTickSec&&s>0){lastTickSec=s;playTick();}if(left<=0){clearTimer();if(onExpire)onExpire();}}
+  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=8,mid=left<=15;fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';el.className='ctimer-box'+(low?' low':'');const s=Math.ceil(left);if(low&&s!==lastTickSec&&s>0){lastTickSec=s;playTick();}if(left<=0){clearTimer();if(onExpire)onExpire();}}
   tick();timerInt=setInterval(tick,250);
 }
 function clearTimer(){clearInterval(timerInt);timerInt=null;}
