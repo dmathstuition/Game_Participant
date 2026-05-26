@@ -36,7 +36,7 @@ input{width:100%;padding:10px 12px;background:rgba(0,0,0,.4);border:1px solid rg
 input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .btn-r{background:linear-gradient(135deg,var(--red-b),var(--red-d));color:#fff;border:none;border-radius:11px;padding:12px;font-family:inherit;font-size:.95rem;font-weight:800;width:100%;cursor:pointer;letter-spacing:.3px;transition:all .15s;margin-top:4px}
 .btn-r:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(192,21,42,.45)}
-.btn-ghost{background:transparent;border:1px solid rgba(192,21,42,.25);color:var(--text2);border-radius:9px;padding:8px 14px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;margin-top:8px;width:100%}
+.btn-ghost{background:transparent;border:1px solid rgba(192,21,42,.25);color:var(--text2);border-radius:9px;padding:8px 14px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;margin-top:8px;width:100%}
 .cfg-msg{font-size:.75rem;margin-top:8px;padding:7px 11px;border-radius:8px;display:none}
 .cfg-ok{background:rgba(34,197,94,.1);border:1px solid var(--green);color:var(--green)}
 .cfg-err{background:rgba(239,68,68,.1);border:1px solid var(--red-b);color:#ff8080}
@@ -54,7 +54,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .join-inp:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(245,197,24,.12)!important}
 .join-btn{background:linear-gradient(135deg,var(--red-b),var(--red-d));color:#fff;border:none;border-radius:14px;padding:15px;font-family:'Nunito',sans-serif;font-size:1.05rem;font-weight:900;width:100%;cursor:pointer;margin-top:10px;transition:all .15s;box-shadow:0 6px 20px rgba(192,21,42,.3)}
 .join-btn:active{transform:scale(.97)}
-.change-link{color:var(--text2);font-size:.72rem;margin-top:14px;cursor:pointer;text-decoration:underline}
+.change-link{color:var(--text2);font-size:.72rem;margin-top:14px;cursor:pointer;text-decoration:underline;display:block}
 
 /* LOBBY */
 #s-lobby{background:radial-gradient(ellipse 130% 80% at 50% -10%,#2a0308,var(--bg))}
@@ -73,6 +73,13 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .mode-pill.standard{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.3);color:#60a5fa}
 .mode-pill.team{background:rgba(232,25,47,.1);border-color:rgba(232,25,47,.3);color:#ff8080}
 .mode-pill.speed{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3);color:var(--orange)}
+
+/* LOGGED OUT notice */
+#s-loggedout{background:radial-gradient(ellipse 130% 80% at 50% -10%,#1a0308,var(--bg))}
+.logout-card{display:flex;flex-direction:column;align-items:center;gap:14px;animation:fadeUp .4s ease;text-align:center;max-width:340px}
+.logout-ico{font-size:3.5rem}
+.logout-h{font-size:1.4rem;font-weight:900;font-family:'Nunito',sans-serif;color:var(--gold)}
+.logout-p{font-size:.85rem;color:var(--text2);line-height:1.6}
 
 /* SECTION INTRO */
 #s-section{background:radial-gradient(ellipse 130% 80% at 50% -10%,#200540,var(--bg))}
@@ -224,7 +231,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .sp-opt.rv-ok.C{background:rgba(168,85,247,.3)!important;border-color:var(--purple)!important}
 .sp-opt.rv-ok.D{background:rgba(34,197,94,.3)!important;border-color:var(--green)!important}
 .sp-opt.rv-no{opacity:.2!important}
-.sp-feedback{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .1s;background:transparent}
+.sp-feedback{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .1s}
 .sp-feedback.show{opacity:1}
 .sp-fb-ico{font-size:5rem;animation:speedIn .25s ease}
 
@@ -242,7 +249,6 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .lb-header{text-align:center;margin-bottom:18px;animation:fadeUp .4s ease}
 .lb-crown{font-size:2rem;margin-bottom:4px;display:block}
 .lb-h1{font-size:1.7rem;font-weight:900;font-family:'Nunito',sans-serif;color:var(--gold)}
-.lb-sub{font-size:.78rem;color:var(--text2)}
 .lb-list{width:100%;max-width:420px;margin:0 auto}
 .lb-item{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 16px;margin-bottom:8px;border:1px solid;animation:lbSlide .4s ease both}
 @keyframes lbSlide{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
@@ -256,7 +262,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .lb-item:nth-child(2) .lb-rank{color:#94a3b8}
 .lb-item:nth-child(3) .lb-rank{color:#cd7f32}
 .lb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--red-d),var(--red-b));display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0}
-.lb-name{flex:1;font-weight:800;font-size:.92rem;font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-name{flex:1;font-weight:800;font-size:.92rem;font-family:'Nunito',sans-serif}
 .lb-me-badge{font-size:.6rem;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.3);color:var(--gold);border-radius:8px;padding:1px 6px;font-weight:800;flex-shrink:0}
 .lb-score{font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--gold);font-size:1rem;flex-shrink:0}
 
@@ -276,6 +282,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 <canvas id="bg"></canvas>
 <button class="mute-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
 
+<!-- SETUP -->
 <div class="screen" id="s-setup">
   <div class="setup-box">
     <div style="font-size:2rem;text-align:center;margin-bottom:8px">⚙️</div>
@@ -289,6 +296,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- JOIN -->
 <div class="screen" id="s-join">
   <div class="join-card">
     <div class="join-school">Infant Jesus Academy</div>
@@ -298,10 +306,21 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
     <input id="name-inp" class="join-inp" type="text" placeholder="Your full name…" maxlength="30" autocomplete="off"/>
     <div class="err-txt" id="join-err"></div>
     <button class="join-btn" onclick="joinGame()">🚀 Join Competition</button>
-    <div class="change-link" onclick="sc('s-setup')">Change connection</div>
+    <span class="change-link" onclick="sc('s-setup')">Change connection settings</span>
   </div>
 </div>
 
+<!-- LOGGED OUT (force logout screen) -->
+<div class="screen" id="s-loggedout">
+  <div class="logout-card">
+    <div class="logout-ico">🔄</div>
+    <div class="logout-h">Session Ended</div>
+    <p class="logout-p">The organiser has started a new session.<br>Please enter your name to rejoin.</p>
+    <button class="btn-r" style="max-width:240px;margin-top:6px" onclick="doRelogin()">Re-enter Competition</button>
+  </div>
+</div>
+
+<!-- LOBBY -->
 <div class="screen" id="s-lobby">
   <div class="lobby-wrap">
     <div class="lobby-crest"><div class="lc-r1"></div><div class="lc-r2"></div><div class="lc-inner">🏫</div></div>
@@ -314,6 +333,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- SECTION INTRO -->
 <div class="screen" id="s-section">
   <div class="sec-wrap">
     <div class="sec-badge">Now Starting</div>
@@ -324,6 +344,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- QUESTION -->
 <div class="screen" id="s-question">
   <div class="q-header">
     <div class="q-h-row">
@@ -341,6 +362,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- WAITING -->
 <div class="screen" id="s-waiting">
   <div class="wait-card">
     <div class="wait-check">✅</div>
@@ -350,6 +372,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- RESULT -->
 <div class="screen" id="s-result">
   <div class="result-card" id="result-card">
     <div class="result-ico" id="r-ico"></div>
@@ -361,6 +384,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- TEAM IDLE -->
 <div class="screen" id="s-team-idle">
   <div class="team-idle-card">
     <div class="team-idle-ico">⚔️</div>
@@ -371,6 +395,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- TEAM QUESTION -->
 <div class="screen" id="s-team-q">
   <div class="team-q-hdr t0" id="tq-hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
@@ -388,6 +413,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- TEAM RESULT -->
 <div class="screen" id="s-team-result">
   <div class="team-result-card" id="tr-card">
     <div id="tr-top-bar" style="position:absolute;top:0;left:0;right:0;height:4px;border-radius:28px 28px 0 0"></div>
@@ -400,6 +426,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- SPEED WAIT -->
 <div class="screen" id="s-speed-wait">
   <div class="sp-wait-card">
     <div class="sp-bolt">⚡</div>
@@ -410,6 +437,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- SPEED QUESTION -->
 <div class="screen" id="s-speed-q">
   <div class="sp-header">
     <div class="sp-h-row">
@@ -426,6 +454,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   <div class="sp-feedback" id="sp-feedback"><div class="sp-fb-ico" id="sp-fb-ico"></div></div>
 </div>
 
+<!-- SPEED DONE -->
 <div class="screen" id="s-speed-done">
   <div class="sp-done-card">
     <div class="sp-done-bolt">⚡</div>
@@ -437,15 +466,17 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   </div>
 </div>
 
+<!-- LB -->
 <div class="screen" id="s-lb">
   <div class="lb-header">
     <span class="lb-crown">🏆</span>
     <div class="lb-h1" id="lb-h">Leaderboard</div>
-    <div class="lb-sub">Top competitors</div>
+    <div style="font-size:.78rem;color:var(--text2)">Top competitors</div>
   </div>
   <div class="lb-list" id="lb-list"></div>
 </div>
 
+<!-- ENDED -->
 <div class="screen" id="s-ended">
   <div class="ended-wrap">
     <div class="trophy-end">🏆</div>
@@ -473,15 +504,15 @@ function playTick(){if(muted)return;try{const c=getAudio(),n=c.currentTime;tone(
 function playTimeUp(){if(muted)return;try{const c=getAudio(),n=c.currentTime;[[440,0],[392,.1],[349.23,.2]].forEach(([f,d])=>tone(f,'triangle',n+d,.2,.25,c));}catch(e){}}
 function playBonus(){if(muted)return;try{const c=getAudio(),n=c.currentTime;[[523.25,.0],[659.25,.1],[783.99,.2]].forEach(([f,d])=>tone(f,'sine',n+d,.25,.22,c));}catch(e){}}
 
-/* STATE */
+/* ═══ STATE ═══ */
 let db=null,myId=null,myName='';
 let mode='standard';
+let knownSessionToken=null; // ← tracks current session; change = force logout
 let gs={state:'lobby',cq:null,intro:null,me:{},sections:[]};
 let players={};
 let timerInt=null,hasAnswered=false,qStart=0,myLastAnswer=null,myTimeTaken=0,lastTickSec=-1;
 let tb={state:'lobby',teams:[{name:'Red Eagles',score:0},{name:'Blue Lions',score:0}],cq:null,lock:null,activeTeam:0,isBonus:false,members:{}};
 let tbTimerInt=null,tbAnswered=false,tbLastAnswer=null,tbTimeTaken=0,tbQStart=0,tbLastTick=-1;
-// SPEED: key fix — track sessionId to detect new session vs stale
 let sp={state:'lobby',bank:[],activePid:null,session:null,players:{}};
 let spTimerInt=null,spCurrentSessionId=null,spRunning=false,spQIdx=0,spScore=0;
 const MEDALS=['🥇','🥈','🥉'],ALPHA=['A','B','C','D'];
@@ -500,12 +531,24 @@ function checkSaved(){const sid=localStorage.getItem('ija_pid'),sn=localStorage.
 /* JOIN */
 function joinGame(){
   const name=gv('name-inp');if(!name){setErr('Enter your name');return;}if(!db){setErr('Not connected');return;}
-  myName=name;myId=localStorage.getItem('ija_pid')||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+  myName=name;myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
   localStorage.setItem('ija_pid',myId);localStorage.setItem('ija_name',myName);
+  registerPlayer();goLobby();
+}
+/* FIX: doRelogin clears saved identity so they get a fresh ID */
+function doRelogin(){
+  clearTimers();
+  myId=null;myName='';
+  localStorage.removeItem('ija_pid');localStorage.removeItem('ija_name');
+  document.getElementById('name-inp').value='';
+  sc('s-join');
+}
+function registerPlayer(){
+  if(!db||!myId)return;
+  // Register in all 3 systems
   db.ref('quiz/players/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
   db.ref('quiz/sp/players/'+myId).set({name:myName,score:0,state:'waiting',total:20});
   db.ref('quiz/tb/members/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null});
-  goLobby();
 }
 document.getElementById('name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 function setErr(msg){document.getElementById('join-err').textContent=msg;}
@@ -514,6 +557,27 @@ function goLobby(){document.getElementById('lobby-name').textContent=myName;sc('
 /* LISTENERS */
 function setupListeners(){
   if(!db)return;
+  /* ═══ FIX: Session token watcher — force logout when organiser starts/ends ═══ */
+  db.ref('quiz/sessionToken').on('value',s=>{
+    const token=s.val();
+    if(!token)return;
+    if(knownSessionToken===null){
+      // First load — just store the token, don't logout
+      knownSessionToken=token;
+      return;
+    }
+    if(token!==knownSessionToken){
+      // Token changed → organiser started/ended session → force logout
+      knownSessionToken=token;
+      clearTimers();
+      // Wipe local identity
+      myId=null;myName='';
+      localStorage.removeItem('ija_pid');localStorage.removeItem('ija_name');
+      spRunning=false;spCurrentSessionId=null;
+      sc('s-loggedout');
+    }
+  });
+
   db.ref('quiz/mode').on('value',s=>{mode=s.val()||'standard';updateModePill();});
   db.ref('quiz/state').on('value',s=>handleStd(s.val()));
   db.ref('quiz/currentQuestion').on('value',s=>{gs.cq=s.val();if(gs.state==='question_active')renderQ();if(gs.state==='reveal'&&gs.cq?.answer)applyReveal('q-opts',gs.cq.answer);});
@@ -523,15 +587,11 @@ function setupListeners(){
   db.ref('quiz/players').on('value',s=>{players=s.val()||{};if(['leaderboard','section_leaderboard'].includes(gs.state))renderLB(players);});
   // Team
   db.ref('quiz/tb').on('value',s=>{const d=s.val();if(!d)return;tb.state=d.state||'lobby';tb.teams=toArray(d.teams)||tb.teams;tb.cq=d.cq||null;tb.lock=d.lock||null;tb.activeTeam=d.activeTeam??0;tb.isBonus=!!d.isBonus;tb.members=d.members||{};if(mode==='team')handleTB();});
-  // Speed — listen to full sp node
+  // Speed
   db.ref('quiz/sp').on('value',s=>{const d=s.val();if(!d)return;sp.state=d.state||'lobby';sp.activePid=d.activePid||null;sp.session=d.session||null;sp.players=d.players||{};if(mode==='speed')handleSP();});
 }
 
-function updateModePill(){
-  const el=document.getElementById('mode-pill');
-  const m={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}}[mode]||{cls:'standard',txt:'📝 Standard'};
-  el.className='mode-pill '+m.cls;el.textContent=m.txt;
-}
+function updateModePill(){const el=document.getElementById('mode-pill');const m={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}}[mode]||{cls:'standard',txt:'📝 Standard'};el.className='mode-pill '+m.cls;el.textContent=m.txt;}
 
 /* STANDARD */
 function handleStd(state){
@@ -541,28 +601,34 @@ function handleStd(state){
   if(state==='lobby'){hasAnswered=false;myLastAnswer=null;sc('s-lobby');}
   else if(state==='section_intro'){hasAnswered=false;myLastAnswer=null;renderSecIntro();sc('s-section');}
   else if(state==='question_active'){hasAnswered=false;myLastAnswer=null;myTimeTaken=0;lastTickSec=-1;renderQ();sc('s-question');}
-  else if(state==='time_up'){lockOpts('q-opts');if(!hasAnswered){hasAnswered=true;if(db)db.ref('quiz/players/'+myId+'/answered').set(true);}playTimeUp();sc('s-waiting');}
+  else if(state==='time_up'){lockOpts('q-opts');if(!hasAnswered){hasAnswered=true;if(db&&myId)db.ref('quiz/players/'+myId+'/answered').set(true);}playTimeUp();sc('s-waiting');}
   else if(state==='reveal'){if(gs.cq?.answer){applyReveal('q-opts',gs.cq.answer);sc('s-question');setTimeout(()=>showResult(gs.cq.answer),1800);}}
   else if(state==='section_leaderboard'){document.getElementById('lb-h').textContent='Section Board';renderLB(players);sc('s-lb');}
   else if(state==='leaderboard'){document.getElementById('lb-h').textContent='Leaderboard';renderLB(players);sc('s-lb');}
-  else if(state==='ended'){sc('s-ended');}
+  else if(state==='ended'){
+    // Show score then return to lobby after 5s
+    sc('s-ended');
+    setTimeout(()=>{
+      // Don't auto-relogin here — session token change will handle that
+    },5000);
+  }
 }
-function renderSecIntro(){const i=gs.intro||{};document.getElementById('sec-name').textContent=i.name||'Section';document.getElementById('sec-count').textContent=(i.totalQ||0)+' questions';}
+function renderSecIntro(){const i=gs.intro||{};t('sec-name',i.name||'Section');t('sec-count',(i.totalQ||0)+' questions');}
 function renderQ(){
   if(!gs.cq)return;const q=gs.cq;qStart=q.startTime||Date.now();hasAnswered=false;myLastAnswer=null;
-  document.getElementById('q-num-tag').textContent='Q'+(q.index+1)+' / '+(q.total||'?');
+  t('q-num-tag','Q'+(q.index+1)+' / '+(q.total||'?'));
   const sn=toArray(gs.sections)[q.sectionIndex]?.name||('Section '+((q.sectionIndex||0)+1));
-  document.getElementById('q-sec-tag').textContent=sn;
+  t('q-sec-tag',sn);
   const el=document.getElementById('q-text');el.textContent=q.text;el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
   document.getElementById('q-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="ob-${o}" onclick="pickStd('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
   startTimer(q.timeLimit,q.startTime,'ctimer','t-fill',()=>{if(!hasAnswered)autoTimeout();});
 }
 function pickStd(opt){
   if(hasAnswered||gs.state!=='question_active')return;hasAnswered=true;myLastAnswer=opt;myTimeTaken=Math.min((Date.now()-qStart)/1000,gs.cq?.timeLimit||30);
-  if(db){db.ref('quiz/players/'+myId+'/lastAnswer').set(opt);db.ref('quiz/players/'+myId+'/answered').set(true);db.ref('quiz/roundAnswers/'+myId).set({answer:opt,timeTaken:myTimeTaken});}
+  if(db&&myId){db.ref('quiz/players/'+myId+'/lastAnswer').set(opt);db.ref('quiz/players/'+myId+'/answered').set(true);db.ref('quiz/roundAnswers/'+myId).set({answer:opt,timeTaken:myTimeTaken});}
   lockOpts('q-opts');document.getElementById('ob-'+opt)?.classList.add('sel');setTimeout(()=>sc('s-waiting'),400);
 }
-function autoTimeout(){hasAnswered=true;myLastAnswer=null;if(db)db.ref('quiz/players/'+myId+'/answered').set(true);sc('s-waiting');}
+function autoTimeout(){hasAnswered=true;myLastAnswer=null;if(db&&myId)db.ref('quiz/players/'+myId+'/answered').set(true);sc('s-waiting');}
 function showResult(correct){
   const tl=gs.cq?.timeLimit||30,did=!!myLastAnswer,ok=did&&myLastAnswer===correct;
   const pts=ok?Math.round(1000-Math.min(myTimeTaken/tl,1)*500):0;
@@ -582,14 +648,10 @@ function handleTB(){
   else if(state==='reveal'){applyReveal('tq-opts',tb.cq?.answer);sc('s-team-q');setTimeout(()=>showTBResult(tb.cq?.answer),1500);}
   else if(state==='ended'){sc('s-ended');}
 }
-function renderTBIdle(h,sub){
-  t('ti-h',h);document.getElementById('ti-sub').textContent=sub;
-  document.getElementById('ti-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
-  sc('s-team-idle');
-}
+function renderTBIdle(h,sub){t('ti-h',h);document.getElementById('ti-sub').textContent=sub;document.getElementById('ti-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');sc('s-team-idle');}
 function renderTBQ(q,isBonus){
   const tIdx=tb.activeTeam,tn=tb.teams[tIdx]?.name||'?';
-  const hdr=document.getElementById('tq-hdr');hdr.className='team-q-hdr '+(isBonus?'bonus':'t'+tIdx);
+  document.getElementById('tq-hdr').className='team-q-hdr '+(isBonus?'bonus':'t'+tIdx);
   const badge=document.getElementById('tq-team-badge');badge.className='team-badge '+(isBonus?'bonus':'t'+tIdx);badge.textContent=(isBonus?'⚡ BONUS — ':'')+tn;
   const mb=document.getElementById('tq-marks-badge');mb.className='marks-badge '+(isBonus?'b':'n');mb.textContent=isBonus?'2 marks (bonus)':'5 marks';
   const el=document.getElementById('tq-text');el.textContent=q.text;el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
@@ -600,18 +662,17 @@ function renderTBQ(q,isBonus){
 }
 function pickTB(opt){
   if(tbAnswered||tb.state==='reveal')return;tbAnswered=true;tbLastAnswer=opt;tbTimeTaken=Math.min((Date.now()-tbQStart)/1000,tb.cq?.timeLimit||30);
-  if(db){db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);db.ref('quiz/tb/members/'+myId+'/answered').set(true);db.ref('quiz/tb/lock').transaction(cur=>{if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};return cur;});}
+  if(db&&myId){db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);db.ref('quiz/tb/members/'+myId+'/answered').set(true);db.ref('quiz/tb/lock').transaction(cur=>{if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};return cur;});}
   lockOpts('tq-opts');document.getElementById('tbob-'+opt)?.classList.add('sel');
 }
 function showTBResult(correct){
   const lock=tb.lock,marks=tb.cq?.isBonus?2:5;
   const myLocked=lock&&lock.pid===myId&&lock.answer===correct;
   const teamGot=lock&&lock.answer===correct;
-  const chip=document.getElementById('tr-chip');
-  let bar='';
+  const chip=document.getElementById('tr-chip');let bar='';
   if(myLocked){t('tr-ico','🎉');setcls('tr-verdict',`Correct! +${marks} marks`,'result-verdict ok');t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';t('tr-lbl',tb.cq?.isBonus?'bonus marks':'team marks');chip.style.display='none';bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';playCorrect();}
   else if(teamGot){t('tr-ico','👍');setcls('tr-verdict','Team scored!','result-verdict ok');t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';t('tr-lbl','your teammate got it');chip.style.display='none';bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';}
-  else{t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';t('tr-lbl',correct?`Correct was: ${correct}`:'');if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(tb.cq?.options?.[correct]||'');}else{chip.style.display='none';}bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();}
+  else{t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';t('tr-lbl',correct?`Correct was: ${correct}`:'');if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(tb.cq?.options?.[correct]||'');}else chip.style.display='none';bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();}
   document.getElementById('tr-top-bar').style.background=bar;
   document.getElementById('tr-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
   sc('s-team-result');
@@ -623,86 +684,58 @@ function startTBTimer(limit,startTime){
 }
 function clearTBTimer(){clearInterval(tbTimerInt);tbTimerInt=null;}
 
-/* ═══ SPEED BATTLE — Core Fix ═══
-   Problem: spRunning was never reset properly, sessionId was never compared,
-   so re-launching for the same player (or any player) didn't trigger a new session.
-   Fix: compare session.sessionId each time — if new, reset and run fresh. */
+/* SPEED */
 function handleSP(){
   if(mode!=='speed')return;
   if(sp.state==='running'&&sp.activePid===myId&&sp.session){
-    const sess=sp.session;
-    const newSessionId=sess.sessionId;
-    if(newSessionId!==spCurrentSessionId){
-      // Brand new session for me — start fresh
-      spCurrentSessionId=newSessionId;
-      spRunning=false; // allow boot
-      bootSpeedSession(sess);
-    }
-    // If same sessionId and already running, ignore (session in progress)
-  } else if(sp.state==='lobby'||sp.activePid!==myId){
-    // Not my turn
+    const newId=sp.session.sessionId;
+    if(newId!==spCurrentSessionId){spCurrentSessionId=newId;spRunning=false;bootSpeed(sp.session);}
+  }else{
     clearSpeedTimer();
     const runner=sp.activePid?sp.players[sp.activePid]:null;
-    document.getElementById('sp-wait-msg').textContent=runner?`${esc(runner.name||'?')} is running…`:'Waiting for your turn…';
+    document.getElementById('sp-wait-msg').textContent=runner&&runner.name?`${esc(runner.name)} is running…`:'Waiting for your turn…';
     sc('s-speed-wait');
-    if(sp.state==='lobby'&&sp.activePid===null){spRunning=false;spCurrentSessionId=null;}
+    if(sp.state==='lobby'&&!sp.activePid){spRunning=false;spCurrentSessionId=null;}
   }
 }
-function bootSpeedSession(sess){
+function bootSpeed(sess){
   if(spRunning)return;spRunning=true;
-  spQIdx=0;spScore=0;
-  const qs=sess.questions||[];
-  if(!qs.length){finishSpeed(0,0);return;}
-  sc('s-speed-q');
-  showSpeedQ(qs,0,sess.total||20);
+  spQIdx=0;spScore=0;const qs=sess.questions||[];
+  if(!qs.length){finishSpeed(0,sess.total||20);return;}
+  sc('s-speed-q');showSpeedQ(qs,0,sess.total||20);
 }
 function showSpeedQ(qs,idx,total){
   if(idx>=qs.length){finishSpeed(spScore,total);return;}
   const q=qs[idx];
-  document.getElementById('sp-q-pill').textContent='Q'+(idx+1)+' / '+total;
-  document.getElementById('sp-score-pill').textContent=spScore;
+  t('sp-q-pill','Q'+(idx+1)+' / '+total);t('sp-score-pill',spScore);
   document.getElementById('sp-prog').style.width=(((total-idx)/total)*100)+'%';
   const el=document.getElementById('sp-q-text');el.textContent=q.text;el.className='sp-q-text'+(q.text.length>60?' long':'');
   document.getElementById('sp-opts').innerHTML=ALPHA.map(o=>`<button class="sp-opt ${o}" id="spob-${o}" onclick="pickSpeed('${o}','${q.answer}',${idx},${total})"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
   startSpeedTimer(15,Date.now(),q.answer,qs,idx,total);
 }
 function pickSpeed(opt,correct,idx,total){
-  clearSpeedTimer();
-  const isOk=opt===correct;if(isOk)spScore++;
-  // Show feedback
+  clearSpeedTimer();const isOk=opt===correct;if(isOk)spScore++;
   const fb=document.getElementById('sp-feedback'),fbi=document.getElementById('sp-fb-ico');
   fbi.textContent=isOk?'✅':'❌';fb.classList.add('show');
   if(isOk)playCorrect();else playWrong();
   ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});
-  // Update Firebase progress
-  if(db){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}
+  if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}
   setTimeout(()=>{fb.classList.remove('show');const qs=sp.session?.questions||[];showSpeedQ(qs,idx+1,total);},650);
 }
 function startSpeedTimer(limit,startTime,correct,qs,idx,total){
   clearSpeedTimer();const el=document.getElementById('sp-timer'),fill=document.getElementById('sp-prog');
-  function tick(){
-    const left=Math.max(0,limit-(Date.now()-startTime)/1000),pct=left/limit;
-    el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';
-    const low=left<=5;el.className='sp-timer'+(low?' low':'');
-    if(low&&Math.ceil(left)>0)playTick();
-    if(left<=0){clearSpeedTimer();
-      ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});
-      playNoAnswer();if(db){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}
-      setTimeout(()=>showSpeedQ(qs,idx+1,total),600);
-    }
-  }
-  tick();spTimerInt=setInterval(tick,250);
+  function tick(){const left=Math.max(0,limit-(Date.now()-startTime)/1000),pct=left/limit;el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';const low=left<=5;el.className='sp-timer'+(low?' low':'');if(low&&Math.ceil(left)>0)playTick();
+  if(left<=0){clearSpeedTimer();ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});playNoAnswer();if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}setTimeout(()=>showSpeedQ(qs,idx+1,total),600);}
+  }tick();spTimerInt=setInterval(tick,250);
 }
 function clearSpeedTimer(){clearInterval(spTimerInt);spTimerInt=null;}
 function finishSpeed(score,total){
   spRunning=false;clearSpeedTimer();
   const pct=total>0?Math.round((score/total)*100):0;
   t('sd-correct',score+' / '+total);t('sd-score',score);t('sd-acc',pct+'%');
-  if(db){
+  if(db&&myId){
     const upd={};
-    upd[`quiz/sp/players/${myId}/score`]=score;
-    upd[`quiz/sp/players/${myId}/state`]='done';
-    upd[`quiz/sp/players/${myId}/total`]=total;
+    upd[`quiz/sp/players/${myId}/score`]=score;upd[`quiz/sp/players/${myId}/state`]='done';upd[`quiz/sp/players/${myId}/total`]=total;
     upd['quiz/sp/state']='lobby';upd['quiz/sp/activePid']=null;upd['quiz/sp/session']=null;
     db.ref().update(upd);
   }
@@ -716,14 +749,12 @@ function startTimer(limit,startTime,timerId,fillId,onExpire){
   tick();timerInt=setInterval(tick,250);
 }
 function clearTimer(){clearInterval(timerInt);timerInt=null;}
+function clearTimers(){clearTimer();clearTBTimer();clearSpeedTimer();}
 function lockOpts(id){document.querySelectorAll('#'+id+' button').forEach(b=>b.disabled=true);clearTimer();}
-function applyReveal(id,correct){ALPHA.forEach(o=>{const prefix=id==='q-opts'?'ob-':'tbob-';const b=document.getElementById(prefix+o);if(!b)return;b.disabled=true;b.classList.remove('sel');b.classList.add(o===correct?'rv-ok':'rv-no');});}
+function applyReveal(id,correct){const prefix=id==='q-opts'?'ob-':'tbob-';ALPHA.forEach(o=>{const b=document.getElementById(prefix+o);if(!b)return;b.disabled=true;b.classList.remove('sel');b.classList.add(o===correct?'rv-ok':'rv-no');});}
 
 /* LB */
-function renderLB(source){
-  const sorted=Object.entries(source).map(([id,p])=>({id,...p})).sort((a,b)=>(b.score||0)-(a.score||0));
-  document.getElementById('lb-list').innerHTML=sorted.slice(0,10).map((p,i)=>`<div class="lb-item ${p.id===myId?'me':''}" style="animation-delay:${i*.07}s"><div class="lb-rank">${MEDALS[i]||i+1}</div><div class="lb-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="lb-name">${esc(p.name||'?')}</div>${p.id===myId?'<span class="lb-me-badge">YOU</span>':''}<div class="lb-score">${p.score||0}</div></div>`).join('');
-}
+function renderLB(source){const sorted=Object.entries(source).map(([id,p])=>({id,...p})).sort((a,b)=>(b.score||0)-(a.score||0));document.getElementById('lb-list').innerHTML=sorted.slice(0,10).map((p,i)=>`<div class="lb-item ${p.id===myId?'me':''}" style="animation-delay:${i*.07}s"><div class="lb-rank">${MEDALS[i]||i+1}</div><div class="lb-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="lb-name">${esc(p.name||'?')}</div>${p.id===myId?'<span class="lb-me-badge">YOU</span>':''}<div class="lb-score">${p.score||0}</div></div>`).join('');}
 
 /* INIT */
 (function(){loadCfgInputs();const c=getCfg();if(c)initFB(c,false);else sc('s-setup');document.addEventListener('touchstart',()=>{try{getAudio();}catch(e){}},{once:true});document.addEventListener('click',()=>{try{getAudio();}catch(e){}},{once:true});})();
