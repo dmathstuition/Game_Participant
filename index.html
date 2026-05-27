@@ -155,7 +155,6 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .result-pts-big{font-size:4rem;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
 .result-pts-big.ok{color:var(--gold);text-shadow:0 0 30px rgba(245,197,24,.4)}
 .result-pts-big.no,.result-pts-big.na{color:var(--text2)}
-.result-pts-lbl{font-size:.78rem;color:var(--text2);margin-bottom:20px;margin-top:4px}
 .result-answer-chip{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:5px 13px;font-size:.78rem;font-weight:700;margin-bottom:14px}
 .result-total-card{background:rgba(192,21,42,.07);border:1px solid rgba(192,21,42,.2);border-radius:14px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
 .rtc-lbl{font-size:.8rem;color:var(--text2)}
@@ -491,9 +490,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 
 <script>
 /* PARTICLE BG */
-(function(){const c=document.getElementById('bg'),ctx=c.getContext('2d');let W,H,stars=[];let serverOffset = 0;
-function initServerOffset(){firebase.database().ref('/.info/serverTimeOffset').on('value',snap=>{serverOffset=snap.val()||0;});}
-function serverNow(){return Date.now()+serverOffset;}
+(function(){const c=document.getElementById('bg'),ctx=c.getContext('2d');let W,H,stars=[];let serverOffset=0;
 function resize(){W=c.width=innerWidth;H=c.height=innerHeight;stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.2,a:Math.random()*Math.PI*2,v:Math.random()*.3+.1,vx:(Math.random()-.5)*.07,vy:(Math.random()-.5)*.07,red:Math.random()<.25});}resize();addEventListener('resize',resize);function draw(){ctx.clearRect(0,0,W,H);stars.forEach(s=>{s.a+=s.v*.015;s.x+=s.vx;s.y+=s.vy;if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;const alpha=.06+.15*Math.sin(s.a);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.red?`rgba(192,21,42,${alpha})`:`rgba(220,200,200,${alpha*.6})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
 
 /* AUDIO */
@@ -511,7 +508,7 @@ function playBonus(){if(muted)return;try{const c=getAudio(),n=c.currentTime;[[52
 /* ═══ STATE ═══ */
 let db=null,myId=null,myName='';
 let mode='standard';
-let knownSessionToken=null; // ← tracks current session; change = force logout
+let knownSessionToken=null;
 let gs={state:'lobby',cq:null,intro:null,me:{},sections:[]};
 let players={};
 let timerInt=null,hasAnswered=false,qStart=0,myLastAnswer=null,myTimeTaken=0,lastTickSec=-1;
@@ -523,32 +520,68 @@ const MEDALS=['🥇','🥈','🥉'],ALPHA=['A','B','C','D'];
 
 function sc(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));const el=document.getElementById(id);if(el)el.classList.add('on');}
 
+/* serverNow — defined at top level so all code can use it */
+let _serverOffset=0;
+function serverNow(){return Date.now()+_serverOffset;}
+function initServerOffset(){
+  if(!db)return;
+  db.ref('/.info/serverTimeOffset').on('value',snap=>{_serverOffset=snap.val()||0;});
+}
+
 /* SETUP */
 function getCfg(){return JSON.parse(localStorage.getItem('ija_cfg')||'null');}
 function loadCfgInputs(){const c=getCfg();if(!c)return;sv('cfg-key',c.apiKey||'');sv('cfg-db',c.databaseURL||'');sv('cfg-pid',c.projectId||'');sv('cfg-auth',c.authDomain||'');}
-function connectAndSave(){const c={apiKey:gv('cfg-key'),databaseURL:gv('cfg-db'),projectId:gv('cfg-pid'),authDomain:gv('cfg-auth')};if(!c.apiKey||!c.databaseURL){cfgMsg('Enter API Key and Database URL','e');return;}localStorage.setItem('ija_cfg',JSON.stringify(c));initFB(c,true);}
-function cfgMsg(msg,t){const el=document.getElementById('cfg-msg');el.style.display='block';el.className='cfg-msg '+(t==='s'?'cfg-ok':'cfg-err');el.textContent=msg;}
-function initFB(cfg,fs){try{if(firebase.apps.length)firebase.app().delete().then(()=>startFB(cfg,fs));else startFB(cfg,fs);}catch(e){startFB(cfg,fs);}}
-function startFB(cfg,fs){try{firebase.initializeApp(cfg);db=firebase.database();initServerOffset();if(fs){cfgMsg('✓ Connected!','s');setTimeout(checkSaved,600);}else checkSaved();}catch(e){if(fs)cfgMsg('Error: '+e.message,'e');}}
-function checkSaved(){const sid=localStorage.getItem('ija_pid'),sn=localStorage.getItem('ija_name');if(sid&&sn){myId=sid;myName=sn;goLobby();}else sc('s-join');}
+function connectAndSave(){
+  const c={apiKey:gv('cfg-key'),databaseURL:gv('cfg-db'),projectId:gv('cfg-pid'),authDomain:gv('cfg-auth')};
+  if(!c.apiKey||!c.databaseURL){cfgMsg('Enter API Key and Database URL','e');return;}
+  localStorage.setItem('ija_cfg',JSON.stringify(c));
+  initFB(c,true);
+}
+function cfgMsg(msg,type){const el=document.getElementById('cfg-msg');el.style.display='block';el.className='cfg-msg '+(type==='s'?'cfg-ok':'cfg-err');el.textContent=msg;}
+
+function initFB(cfg,fs){
+  try{
+    if(firebase.apps.length)firebase.app().delete().then(()=>startFB(cfg,fs)).catch(()=>startFB(cfg,fs));
+    else startFB(cfg,fs);
+  }catch(e){startFB(cfg,fs);}
+}
+
+function startFB(cfg,fs){
+  try{
+    firebase.initializeApp(cfg);
+    db=firebase.database();
+    initServerOffset();
+    if(fs){cfgMsg('✓ Connected!','s');setTimeout(checkSaved,600);}
+    else checkSaved();
+  }catch(e){
+    db=null;
+    if(fs) cfgMsg('Error: '+e.message,'e');
+    else sc('s-setup'); /* ← FIX: don't leave a blank screen on auto-load failure */
+  }
+}
+
+function checkSaved(){
+  if(!db){sc('s-setup');return;} /* ← FIX: guard against null db */
+  const sid=localStorage.getItem('ija_pid'),sn=localStorage.getItem('ija_name');
+  if(sid&&sn){myId=sid;myName=sn;goLobby();}
+  else sc('s-join');
+}
 
 /* JOIN */
 function joinGame(){
-  const name = gv('name-inp');
-  if (!name) { setErr('Enter your name'); return; }
-
+  const name=gv('name-inp');
+  if(!name){setErr('Enter your name');return;}
   firebase.auth().signInAnonymously()
-    .then(cred => {
-      myId = cred.user.uid;
-      myName = name;
-      localStorage.setItem('ija_pid', myId);
-      localStorage.setItem('ija_name', myName);
+    .then(cred=>{
+      myId=cred.user.uid;myName=name;
+      localStorage.setItem('ija_pid',myId);
+      localStorage.setItem('ija_name',myName);
       registerPlayer();
       goLobby();
     })
-    .catch(err => setErr('Connection error: ' + err.message));
+    .catch(err=>setErr('Connection error: '+err.message));
 }
-/* FIX: doRelogin clears saved identity so they get a fresh ID */
+
 function doRelogin(){
   clearTimers();
   myId=null;myName='';
@@ -556,13 +589,14 @@ function doRelogin(){
   document.getElementById('name-inp').value='';
   sc('s-join');
 }
+
 function registerPlayer(){
   if(!db||!myId)return;
-  // Register in all 3 systems
   db.ref('quiz/players/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
   db.ref('quiz/sp/players/'+myId).set({name:myName,score:0,state:'waiting',total:20});
   db.ref('quiz/tb/members/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null});
 }
+
 document.getElementById('name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 function setErr(msg){document.getElementById('join-err').textContent=msg;}
 function goLobby(){document.getElementById('lobby-name').textContent=myName;sc('s-lobby');setupListeners();}
@@ -570,20 +604,15 @@ function goLobby(){document.getElementById('lobby-name').textContent=myName;sc('
 /* LISTENERS */
 function setupListeners(){
   if(!db)return;
-  /* ═══ FIX: Session token watcher — force logout when organiser starts/ends ═══ */
+
+  /* Session token watcher — force logout when organiser starts/ends */
   db.ref('quiz/sessionToken').on('value',s=>{
     const token=s.val();
     if(!token)return;
-    if(knownSessionToken===null){
-      // First load — just store the token, don't logout
-      knownSessionToken=token;
-      return;
-    }
+    if(knownSessionToken===null){knownSessionToken=token;return;}
     if(token!==knownSessionToken){
-      // Token changed → organiser started/ended session → force logout
       knownSessionToken=token;
       clearTimers();
-      // Wipe local identity
       myId=null;myName='';
       localStorage.removeItem('ija_pid');localStorage.removeItem('ija_name');
       spRunning=false;spCurrentSessionId=null;
@@ -593,18 +622,44 @@ function setupListeners(){
 
   db.ref('quiz/mode').on('value',s=>{mode=s.val()||'standard';updateModePill();});
   db.ref('quiz/state').on('value',s=>handleStd(s.val()));
-  db.ref('quiz/currentQuestion').on('value',s=>{gs.cq=s.val();if(gs.state==='question_active')renderQ();if(gs.state==='reveal'&&gs.cq?.answer)applyReveal('q-opts',gs.cq.answer);});
+  db.ref('quiz/currentQuestion').on('value',s=>{
+    gs.cq=s.val();
+    if(gs.state==='question_active')renderQ();
+    if(gs.state==='reveal'&&gs.cq?.answer)applyReveal('q-opts',gs.cq.answer);
+  });
   db.ref('quiz/sectionIntro').on('value',s=>{gs.intro=s.val();if(gs.state==='section_intro')renderSecIntro();});
   db.ref('quiz/sections').on('value',s=>{if(s.val())gs.sections=toArray(s.val());});
-  db.ref('quiz/players/'+myId).on('value',s=>{const p=s.val();if(!p)return;gs.me=p;document.getElementById('lobby-score').textContent=p.score||0;document.getElementById('final-pts').textContent=p.score||0;});
-  db.ref('quiz/players').on('value',s=>{players=s.val()||{};if(['leaderboard','section_leaderboard'].includes(gs.state))renderLB(players);});
-  // Team
-  db.ref('quiz/tb').on('value',s=>{const d=s.val();if(!d)return;tb.state=d.state||'lobby';tb.teams=toArray(d.teams)||tb.teams;tb.cq=d.cq||null;tb.lock=d.lock||null;tb.activeTeam=d.activeTeam??0;tb.isBonus=!!d.isBonus;tb.members=d.members||{};if(mode==='team')handleTB();});
-  // Speed
-  db.ref('quiz/sp').on('value',s=>{const d=s.val();if(!d)return;sp.state=d.state||'lobby';sp.activePid=d.activePid||null;sp.session=d.session||null;sp.players=d.players||{};if(mode==='speed')handleSP();});
+  db.ref('quiz/players/'+myId).on('value',s=>{
+    const p=s.val();if(!p)return;gs.me=p;
+    document.getElementById('lobby-score').textContent=p.score||0;
+    document.getElementById('final-pts').textContent=p.score||0;
+  });
+  db.ref('quiz/players').on('value',s=>{
+    players=s.val()||{};
+    if(['leaderboard','section_leaderboard'].includes(gs.state))renderLB(players);
+  });
+  /* Team */
+  db.ref('quiz/tb').on('value',s=>{
+    const d=s.val();if(!d)return;
+    tb.state=d.state||'lobby';tb.teams=toArray(d.teams)||tb.teams;
+    tb.cq=d.cq||null;tb.lock=d.lock||null;
+    tb.activeTeam=d.activeTeam??0;tb.isBonus=!!d.isBonus;tb.members=d.members||{};
+    if(mode==='team')handleTB();
+  });
+  /* Speed */
+  db.ref('quiz/sp').on('value',s=>{
+    const d=s.val();if(!d)return;
+    sp.state=d.state||'lobby';sp.activePid=d.activePid||null;
+    sp.session=d.session||null;sp.players=d.players||{};
+    if(mode==='speed')handleSP();
+  });
 }
 
-function updateModePill(){const el=document.getElementById('mode-pill');const m={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}}[mode]||{cls:'standard',txt:'📝 Standard'};el.className='mode-pill '+m.cls;el.textContent=m.txt;}
+function updateModePill(){
+  const el=document.getElementById('mode-pill');
+  const m={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}}[mode]||{cls:'standard',txt:'📝 Standard'};
+  el.className='mode-pill '+m.cls;el.textContent=m.txt;
+}
 
 /* STANDARD */
 function handleStd(state){
@@ -618,38 +673,62 @@ function handleStd(state){
   else if(state==='reveal'){if(gs.cq?.answer){applyReveal('q-opts',gs.cq.answer);sc('s-question');setTimeout(()=>showResult(gs.cq.answer),1800);}}
   else if(state==='section_leaderboard'){document.getElementById('lb-h').textContent='Section Board';renderLB(players);sc('s-lb');}
   else if(state==='leaderboard'){document.getElementById('lb-h').textContent='Leaderboard';renderLB(players);sc('s-lb');}
-  else if(state==='ended'){
-    // Show score then return to lobby after 5s
-    sc('s-ended');
-    setTimeout(()=>{
-      // Don't auto-relogin here — session token change will handle that
-    },5000);
-  }
+  else if(state==='ended'){sc('s-ended');}
 }
+
 function renderSecIntro(){const i=gs.intro||{};t('sec-name',i.name||'Section');t('sec-count',(i.totalQ||0)+' questions');}
+
 function renderQ(){
   if(!gs.cq)return;const q=gs.cq;qStart=q.startTime||serverNow();hasAnswered=false;myLastAnswer=null;
   t('q-num-tag','Q'+(q.index+1)+' / '+(q.total||'?'));
   const sn=toArray(gs.sections)[q.sectionIndex]?.name||('Section '+((q.sectionIndex||0)+1));
   t('q-sec-tag',sn);
-  const el=document.getElementById('q-text');el.textContent=q.text;el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
+  const el=document.getElementById('q-text');el.textContent=q.text;
+  el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
   document.getElementById('q-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="ob-${o}" onclick="pickStd('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
   startTimer(q.timeLimit,q.startTime,'ctimer','t-fill',()=>{if(!hasAnswered)autoTimeout();});
 }
+
 function pickStd(opt){
-  if(hasAnswered||gs.state!=='question_active')return;hasAnswered=true;myLastAnswer=opt;myTimeTaken=Math.min((serverNow()-qStart)/1000,gs.cq?.timeLimit||30);
-  if(db&&myId){db.ref('quiz/players/'+myId+'/lastAnswer').set(opt);db.ref('quiz/players/'+myId+'/answered').set(true);db.ref('quiz/roundAnswers/'+myId).set({answer:opt,timeTaken:myTimeTaken});}
-  lockOpts('q-opts');document.getElementById('ob-'+opt)?.classList.add('sel');setTimeout(()=>sc('s-waiting'),400);
+  if(hasAnswered||gs.state!=='question_active')return;
+  hasAnswered=true;myLastAnswer=opt;
+  myTimeTaken=Math.min((serverNow()-qStart)/1000,gs.cq?.timeLimit||30);
+  if(db&&myId){
+    db.ref('quiz/players/'+myId+'/lastAnswer').set(opt);
+    db.ref('quiz/players/'+myId+'/answered').set(true);
+    db.ref('quiz/roundAnswers/'+myId).set({answer:opt,timeTaken:myTimeTaken});
+  }
+  lockOpts('q-opts');document.getElementById('ob-'+opt)?.classList.add('sel');
+  setTimeout(()=>sc('s-waiting'),400);
 }
-function autoTimeout(){hasAnswered=true;myLastAnswer=null;if(db&&myId)db.ref('quiz/players/'+myId+'/answered').set(true);sc('s-waiting');}
+
+function autoTimeout(){
+  hasAnswered=true;myLastAnswer=null;
+  if(db&&myId)db.ref('quiz/players/'+myId+'/answered').set(true);
+  sc('s-waiting');
+}
+
 function showResult(correct){
   const tl=gs.cq?.timeLimit||30,did=!!myLastAnswer,ok=did&&myLastAnswer===correct;
   const pts=ok?Math.round(1000-Math.min(myTimeTaken/tl,1)*500):0;
   const card=document.getElementById('result-card'),chip=document.getElementById('r-chip');
-  if(!did){card.className='result-card noanswer';t('r-ico','⏰');setcls('r-verdict',"Time's Up!",'result-verdict na');t('r-pts','0');document.getElementById('r-pts').className='result-pts-big na';t('r-lbl','no answer submitted');chip.style.cssText='display:inline-flex;background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);color:var(--gold)';chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playNoAnswer();}
-  else if(ok){card.className='result-card correct';t('r-ico','🎉');setcls('r-verdict','Correct! 🔥','result-verdict ok');t('r-pts','+'+pts);document.getElementById('r-pts').className='result-pts-big ok';t('r-lbl','points earned');chip.style.display='none';playCorrect();}
-  else{card.className='result-card wrong';t('r-ico','😢');setcls('r-verdict','Wrong Answer','result-verdict no');t('r-pts','0');document.getElementById('r-pts').className='result-pts-big no';t('r-lbl','no points');chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playWrong();}
-  t('r-total',(gs.me?.score||0)+(ok?pts:0));setTimeout(()=>{if(gs.me?.score!==undefined)t('r-total',gs.me.score);},2000);
+  if(!did){
+    card.className='result-card noanswer';t('r-ico','⏰');setcls('r-verdict',"Time's Up!",'result-verdict na');
+    t('r-pts','0');document.getElementById('r-pts').className='result-pts-big na';t('r-lbl','no answer submitted');
+    chip.style.cssText='display:inline-flex;background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);color:var(--gold)';
+    chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playNoAnswer();
+  }else if(ok){
+    card.className='result-card correct';t('r-ico','🎉');setcls('r-verdict','Correct! 🔥','result-verdict ok');
+    t('r-pts','+'+pts);document.getElementById('r-pts').className='result-pts-big ok';
+    t('r-lbl','points earned');chip.style.display='none';playCorrect();
+  }else{
+    card.className='result-card wrong';t('r-ico','😢');setcls('r-verdict','Wrong Answer','result-verdict no');
+    t('r-pts','0');document.getElementById('r-pts').className='result-pts-big no';t('r-lbl','no points');
+    chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';
+    chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playWrong();
+  }
+  t('r-total',(gs.me?.score||0)+(ok?pts:0));
+  setTimeout(()=>{if(gs.me?.score!==undefined)t('r-total',gs.me.score);},2000);
   gs.state='result';sc('s-result');
 }
 
@@ -661,38 +740,77 @@ function handleTB(){
   else if(state==='reveal'){applyReveal('tq-opts',tb.cq?.answer);sc('s-team-q');setTimeout(()=>showTBResult(tb.cq?.answer),1500);}
   else if(state==='ended'){sc('s-ended');}
 }
-function renderTBIdle(h,sub){t('ti-h',h);document.getElementById('ti-sub').textContent=sub;document.getElementById('ti-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');sc('s-team-idle');}
+
+function renderTBIdle(h,sub){
+  t('ti-h',h);document.getElementById('ti-sub').textContent=sub;
+  document.getElementById('ti-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
+  sc('s-team-idle');
+}
+
 function renderTBQ(q,isBonus){
   const tIdx=tb.activeTeam,tn=tb.teams[tIdx]?.name||'?';
   document.getElementById('tq-hdr').className='team-q-hdr '+(isBonus?'bonus':'t'+tIdx);
-  const badge=document.getElementById('tq-team-badge');badge.className='team-badge '+(isBonus?'bonus':'t'+tIdx);badge.textContent=(isBonus?'⚡ BONUS — ':'')+tn;
+  const badge=document.getElementById('tq-team-badge');badge.className='team-badge '+(isBonus?'bonus':'t'+tIdx);
+  badge.textContent=(isBonus?'⚡ BONUS — ':'')+tn;
   const mb=document.getElementById('tq-marks-badge');mb.className='marks-badge '+(isBonus?'b':'n');mb.textContent=isBonus?'2 marks (bonus)':'5 marks';
-  const el=document.getElementById('tq-text');el.textContent=q.text;el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
+  const el=document.getElementById('tq-text');el.textContent=q.text;
+  el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
   document.getElementById('tq-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="tbob-${o}" onclick="pickTB('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
   tbAnswered=false;tbLastAnswer=null;tbQStart=q.startTime||serverNow();tbTimeTaken=0;tbLastTick=-1;
   if(isBonus)playBonus();
   startTBTimer(q.timeLimit,q.startTime);sc('s-team-q');
 }
+
 function pickTB(opt){
-  if(tbAnswered||tb.state==='reveal')return;tbAnswered=true;tbLastAnswer=opt;tbTimeTaken=Math.min((serverNow()-tbQStart)/1000,tb.cq?.timeLimit||30);
-  if(db&&myId){db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);db.ref('quiz/tb/members/'+myId+'/answered').set(true);db.ref('quiz/tb/lock').transaction(cur=>{if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};return cur;});}
+  if(tbAnswered||tb.state==='reveal')return;
+  tbAnswered=true;tbLastAnswer=opt;
+  tbTimeTaken=Math.min((serverNow()-tbQStart)/1000,tb.cq?.timeLimit||30);
+  if(db&&myId){
+    db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);
+    db.ref('quiz/tb/members/'+myId+'/answered').set(true);
+    db.ref('quiz/tb/lock').transaction(cur=>{if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};return cur;});
+  }
   lockOpts('tq-opts');document.getElementById('tbob-'+opt)?.classList.add('sel');
 }
+
 function showTBResult(correct){
   const lock=tb.lock,marks=tb.cq?.isBonus?2:5;
   const myLocked=lock&&lock.pid===myId&&lock.answer===correct;
   const teamGot=lock&&lock.answer===correct;
   const chip=document.getElementById('tr-chip');let bar='';
-  if(myLocked){t('tr-ico','🎉');setcls('tr-verdict',`Correct! +${marks} marks`,'result-verdict ok');t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';t('tr-lbl',tb.cq?.isBonus?'bonus marks':'team marks');chip.style.display='none';bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';playCorrect();}
-  else if(teamGot){t('tr-ico','👍');setcls('tr-verdict','Team scored!','result-verdict ok');t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';t('tr-lbl','your teammate got it');chip.style.display='none';bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';}
-  else{t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';t('tr-lbl',correct?`Correct was: ${correct}`:'');if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(tb.cq?.options?.[correct]||'');}else chip.style.display='none';bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();}
+  if(myLocked){
+    t('tr-ico','🎉');setcls('tr-verdict',`Correct! +${marks} marks`,'result-verdict ok');
+    t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';
+    t('tr-lbl',tb.cq?.isBonus?'bonus marks':'team marks');chip.style.display='none';
+    bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';playCorrect();
+  }else if(teamGot){
+    t('tr-ico','👍');setcls('tr-verdict','Team scored!','result-verdict ok');
+    t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';
+    t('tr-lbl','your teammate got it');chip.style.display='none';
+    bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';
+  }else{
+    t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');
+    t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';
+    t('tr-lbl',correct?`Correct was: ${correct}`:'');
+    if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(tb.cq?.options?.[correct]||'');}
+    else chip.style.display='none';
+    bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();
+  }
   document.getElementById('tr-top-bar').style.background=bar;
   document.getElementById('tr-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
   sc('s-team-result');
 }
+
 function startTBTimer(limit,startTime){
   clearTBTimer();const el=document.getElementById('tb-ctimer'),fill=document.getElementById('tb-t-fill');
-  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=5;el.className='ctimer-box'+(low?' low':'');fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':tb.cq?.isBonus?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';const s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}if(left<=0)clearTBTimer();}
+  function tick(){
+    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
+    fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);
+    const low=left<=5;el.className='ctimer-box'+(low?' low':'');
+    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':tb.cq?.isBonus?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';
+    const s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}
+    if(left<=0)clearTBTimer();
+  }
   tick();tbTimerInt=setInterval(tick,250);
 }
 function clearTBTimer(){clearInterval(tbTimerInt);tbTimerInt=null;}
@@ -711,21 +829,25 @@ function handleSP(){
     if(sp.state==='lobby'&&!sp.activePid){spRunning=false;spCurrentSessionId=null;}
   }
 }
+
 function bootSpeed(sess){
   if(spRunning)return;spRunning=true;
   spQIdx=0;spScore=0;const qs=sess.questions||[];
   if(!qs.length){finishSpeed(0,sess.total||20);return;}
   sc('s-speed-q');showSpeedQ(qs,0,sess.total||20);
 }
+
 function showSpeedQ(qs,idx,total){
   if(idx>=qs.length){finishSpeed(spScore,total);return;}
   const q=qs[idx];
   t('sp-q-pill','Q'+(idx+1)+' / '+total);t('sp-score-pill',spScore);
   document.getElementById('sp-prog').style.width=(((total-idx)/total)*100)+'%';
-  const el=document.getElementById('sp-q-text');el.textContent=q.text;el.className='sp-q-text'+(q.text.length>60?' long':'');
+  const el=document.getElementById('sp-q-text');el.textContent=q.text;
+  el.className='sp-q-text'+(q.text.length>60?' long':'');
   document.getElementById('sp-opts').innerHTML=ALPHA.map(o=>`<button class="sp-opt ${o}" id="spob-${o}" onclick="pickSpeed('${o}','${q.answer}',${idx},${total})"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
   startSpeedTimer(15,serverNow(),q.answer,qs,idx,total);
 }
+
 function pickSpeed(opt,correct,idx,total){
   clearSpeedTimer();const isOk=opt===correct;if(isOk)spScore++;
   const fb=document.getElementById('sp-feedback'),fbi=document.getElementById('sp-fb-ico');
@@ -735,20 +857,35 @@ function pickSpeed(opt,correct,idx,total){
   if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}
   setTimeout(()=>{fb.classList.remove('show');const qs=sp.session?.questions||[];showSpeedQ(qs,idx+1,total);},650);
 }
+
 function startSpeedTimer(limit,startTime,correct,qs,idx,total){
   clearSpeedTimer();const el=document.getElementById('sp-timer'),fill=document.getElementById('sp-prog');
-  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';const low=left<=5;el.className='sp-timer'+(low?' low':'');if(low&&Math.ceil(left)>0)playTick();
-  if(left<=0){clearSpeedTimer();ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});playNoAnswer();if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}setTimeout(()=>showSpeedQ(qs,idx+1,total),600);}
-  }tick();spTimerInt=setInterval(tick,250);
+  function tick(){
+    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
+    el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';
+    const low=left<=5;el.className='sp-timer'+(low?' low':'');
+    if(low&&Math.ceil(left)>0)playTick();
+    if(left<=0){
+      clearSpeedTimer();
+      ALPHA.forEach(o=>{const b=document.getElementById('spob-'+o);if(b){b.disabled=true;b.classList.add(o===correct?'rv-ok':'rv-no');}});
+      playNoAnswer();
+      if(db&&myId){db.ref('quiz/sp/session/currentQ').set(idx+1);db.ref('quiz/sp/session/score').set(spScore);}
+      setTimeout(()=>showSpeedQ(qs,idx+1,total),600);
+    }
+  }
+  tick();spTimerInt=setInterval(tick,250);
 }
 function clearSpeedTimer(){clearInterval(spTimerInt);spTimerInt=null;}
+
 function finishSpeed(score,total){
   spRunning=false;clearSpeedTimer();
   const pct=total>0?Math.round((score/total)*100):0;
   t('sd-correct',score+' / '+total);t('sd-score',score);t('sd-acc',pct+'%');
   if(db&&myId){
     const upd={};
-    upd[`quiz/sp/players/${myId}/score`]=score;upd[`quiz/sp/players/${myId}/state`]='done';upd[`quiz/sp/players/${myId}/total`]=total;
+    upd[`quiz/sp/players/${myId}/score`]=score;
+    upd[`quiz/sp/players/${myId}/state`]='done';
+    upd[`quiz/sp/players/${myId}/total`]=total;
     upd['quiz/sp/state']='lobby';upd['quiz/sp/activePid']=null;upd['quiz/sp/session']=null;
     db.ref().update(upd);
   }
@@ -758,20 +895,42 @@ function finishSpeed(score,total){
 /* TIMER */
 function startTimer(limit,startTime,timerId,fillId,onExpire){
   clearTimer();const el=document.getElementById(timerId),fill=document.getElementById(fillId);
-  function tick(){const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);const low=left<=8,mid=left<=15;fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';el.className='ctimer-box'+(low?' low':'');const s=Math.ceil(left);if(low&&s!==lastTickSec&&s>0){lastTickSec=s;playTick();}if(left<=0){clearTimer();if(onExpire)onExpire();}}
+  function tick(){
+    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
+    fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);
+    const low=left<=8,mid=left<=15;
+    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';
+    el.className='ctimer-box'+(low?' low':'');
+    const s=Math.ceil(left);if(low&&s!==lastTickSec&&s>0){lastTickSec=s;playTick();}
+    if(left<=0){clearTimer();if(onExpire)onExpire();}
+  }
   tick();timerInt=setInterval(tick,250);
 }
 function clearTimer(){clearInterval(timerInt);timerInt=null;}
 function clearTimers(){clearTimer();clearTBTimer();clearSpeedTimer();}
 function lockOpts(id){document.querySelectorAll('#'+id+' button').forEach(b=>b.disabled=true);clearTimer();}
-function applyReveal(id,correct){const prefix=id==='q-opts'?'ob-':'tbob-';ALPHA.forEach(o=>{const b=document.getElementById(prefix+o);if(!b)return;b.disabled=true;b.classList.remove('sel');b.classList.add(o===correct?'rv-ok':'rv-no');});}
+function applyReveal(id,correct){
+  const prefix=id==='q-opts'?'ob-':'tbob-';
+  ALPHA.forEach(o=>{const b=document.getElementById(prefix+o);if(!b)return;b.disabled=true;b.classList.remove('sel');b.classList.add(o===correct?'rv-ok':'rv-no');});
+}
 
 /* LB */
-function renderLB(source){const sorted=Object.entries(source).map(([id,p])=>({id,...p})).sort((a,b)=>(b.score||0)-(a.score||0));document.getElementById('lb-list').innerHTML=sorted.slice(0,10).map((p,i)=>`<div class="lb-item ${p.id===myId?'me':''}" style="animation-delay:${i*.07}s"><div class="lb-rank">${MEDALS[i]||i+1}</div><div class="lb-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="lb-name">${esc(p.name||'?')}</div>${p.id===myId?'<span class="lb-me-badge">YOU</span>':''}<div class="lb-score">${p.score||0}</div></div>`).join('');}
+function renderLB(source){
+  const sorted=Object.entries(source).map(([id,p])=>({id,...p})).sort((a,b)=>(b.score||0)-(a.score||0));
+  document.getElementById('lb-list').innerHTML=sorted.slice(0,10).map((p,i)=>`<div class="lb-item ${p.id===myId?'me':''}" style="animation-delay:${i*.07}s"><div class="lb-rank">${MEDALS[i]||i+1}</div><div class="lb-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="lb-name">${esc(p.name||'?')}</div>${p.id===myId?'<span class="lb-me-badge">YOU</span>':''}<div class="lb-score">${p.score||0}</div></div>`).join('');
+}
 
 /* INIT */
-(function(){loadCfgInputs();const c=getCfg();if(c)initFB(c,false);else sc('s-setup');document.addEventListener('touchstart',()=>{try{getAudio();}catch(e){}},{once:true});document.addEventListener('click',()=>{try{getAudio();}catch(e){}},{once:true});})();
+(function(){
+  loadCfgInputs();
+  const c=getCfg();
+  if(c)initFB(c,false);
+  else sc('s-setup');
+  document.addEventListener('touchstart',()=>{try{getAudio();}catch(e){}},{once:true});
+  document.addEventListener('click',()=>{try{getAudio();}catch(e){}},{once:true});
+})();
 
+/* UTILS */
 function toArray(val){if(!val)return[];if(Array.isArray(val))return val;return Object.keys(val).sort((a,b)=>Number(a)-Number(b)).map(k=>val[k]);}
 function gv(id){return document.getElementById(id)?.value?.trim()||'';}
 function sv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
