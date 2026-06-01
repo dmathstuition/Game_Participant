@@ -460,13 +460,9 @@ function playTick(){if(muted)return;try{const c=getAudio(),n=c.currentTime;tone(
 function playTimeUp(){if(muted)return;try{const c=getAudio(),n=c.currentTime;[[440,0],[392,.1],[349.23,.2]].forEach(([f,d])=>tone(f,'triangle',n+d,.2,.25,c));}catch(e){}}
 function playBonus(){if(muted)return;try{const c=getAudio(),n=c.currentTime;[[523.25,.0],[659.25,.1],[783.99,.2]].forEach(([f,d])=>tone(f,'sine',n+d,.25,.22,c));}catch(e){}}
 
-/* ── SERVER TIME SYNC (global scope — fixes timer drift) ── */
-let _serverOffset=0;
+/* ── SERVER TIME SYNC ── */
+var _serverOffset=0;
 function serverNow(){return Date.now()+_serverOffset;}
-function initServerOffset(){
-  if(!window.db)return;
-  window.db.ref('/.info/serverTimeOffset').on('value',s=>{_serverOffset=s.val()||0;});
-}
 
 /* ── STATE ── */
 let db=null,myId=null,myName='';
@@ -481,12 +477,13 @@ let sp={state:'lobby',activePid:null,session:null,players:{}};
 let spTimerInt=null,spCurrentSessionId=null,spRunning=false,spScore=0;
 const MEDALS=['🥇','🥈','🥉'],ALPHA=['A','B','C','D'];
 
-function sc(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));const el=document.getElementById(id);if(el)el.classList.add('on');}
+function sc(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});var el=document.getElementById(id);if(el)el.classList.add('on');}
 
-/* ── SETUP ── */
-/* ── FIREBASE — hardcoded config, no setup needed ── */
+/* ══════════════════════════════════════════════════
+   FIREBASE — hardcoded config
+   ══════════════════════════════════════════════════ */
 try{
-  var firebaseConfig={
+  firebase.initializeApp({
     apiKey:"AIzaSyB_BeXdQFOPUVJLL59OWnLFC61_zs62oLs",
     authDomain:"ija-maths-quiz.firebaseapp.com",
     databaseURL:"https://ija-maths-quiz-default-rtdb.firebaseio.com",
@@ -494,149 +491,174 @@ try{
     storageBucket:"ija-maths-quiz.firebasestorage.app",
     messagingSenderId:"940095816285",
     appId:"1:940095816285:web:a6fb99604427346eef83b4"
-  };
-  firebase.initializeApp(firebaseConfig);
-  db=window.db=firebase.database();
-  try{initServerOffset();}catch(e){}
+  });
+  db=firebase.database();
+  try{db.ref('/.info/serverTimeOffset').on('value',function(s){_serverOffset=s.val()||0;});}catch(e){}
 }catch(e){
-  console.error('Firebase init failed:',e);
-  /* Page still shows join screen thanks to class="screen on" default */
+  console.error('Firebase init error:',e);
 }
 
+/* ══════════════════════════════════════════════════
+   JOIN FLOW
+   ══════════════════════════════════════════════════ */
+
+/* Write player to all 3 registries in Firebase */
+function registerPlayer(){
+  if(!db||!myId||!myName)return;
+  db.ref('quiz/players/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
+  db.ref('quiz/sp/players/'+myId).update({name:myName,score:0,state:'waiting',total:20});
+  db.ref('quiz/tb/members/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null});
+}
+
+/* Check if returning player (saved in localStorage) */
 function checkSaved(){
-  var sid=localStorage.getItem('ija_pid'),sn=localStorage.getItem('ija_name');
-  if(sid&&sn){myId=sid;myName=sn;goLobby();}
-  else sc('s-join');
+  var sid=localStorage.getItem('ija_pid');
+  var sn=localStorage.getItem('ija_name');
+  if(sid&&sn&&db){
+    myId=sid;
+    myName=sn;
+    goLobby();
+  } else {
+    sc('s-join');
+  }
 }
-/* Check immediately */
-checkSaved();
 
-/* ── JOIN ── FIX: removed Firebase Auth — direct DB write with generated ID ── */
+/* New player joining */
 function joinGame(){
   var name=gv('name-inp');
   if(!name){setErr('Enter your name');return;}
-  if(!db){setErr('Not connected to Firebase');return;}
+  if(!db){setErr('Not connected — check your internet');return;}
   setErr('');
-  /* Show loading state on button */
   var btn=document.querySelector('.join-btn');
   if(btn){btn.classList.add('loading');btn.textContent='Joining…';}
-  /* Check for duplicate name — with fallback if check fails */
-  try{
-    db.ref('quiz/players').once('value').then(function(snap){
-      var existing=snap.val()||{};
-      var dupe=false;
-      var keys=Object.keys(existing);
-      for(var i=0;i<keys.length;i++){
-        if(existing[keys[i]].name && existing[keys[i]].name.toLowerCase()===name.toLowerCase()){dupe=true;break;}
-      }
-      if(dupe){
-        setErr('That name is already taken. Try adding your surname.');
+  /* Duplicate name check with failsafe */
+  db.ref('quiz/players').once('value').then(function(snap){
+    var existing=snap.val()||{};
+    var keys=Object.keys(existing);
+    for(var i=0;i<keys.length;i++){
+      if(existing[keys[i]].name&&existing[keys[i]].name.toLowerCase()===name.toLowerCase()){
+        setErr('That name is taken. Add your surname.');
         if(btn){btn.classList.remove('loading');btn.textContent='🚀 Join Competition';}
         return;
       }
-      doJoin(name);
-    }).catch(function(err){
-      doJoin(name);
-    });
-  }catch(e){
-    doJoin(name);
-  }
+    }
+    finishJoin(name);
+  }).catch(function(){
+    finishJoin(name); /* If check fails, join anyway */
+  });
 }
-function doJoin(name){
+
+function finishJoin(name){
   myName=name;
   myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   localStorage.setItem('ija_pid',myId);
   localStorage.setItem('ija_name',myName);
-  registerPlayer();
   goLobby();
 }
 
+/* Re-login after session ended */
 function doRelogin(){
   clearTimers();
+  /* Detach personal listener */
+  if(_myRef){try{_myRef.off();}catch(e){}_myRef=null;}
   myId=null;myName='';
-  localStorage.removeItem('ija_pid');localStorage.removeItem('ija_name');
+  localStorage.removeItem('ija_pid');
+  localStorage.removeItem('ija_name');
   document.getElementById('name-inp').value='';
+  var btn=document.querySelector('.join-btn');
+  if(btn){btn.classList.remove('loading');btn.textContent='🚀 Join Competition';}
   sc('s-join');
 }
 
-function registerPlayer(){
-  if(!db||!myId)return;
-  db.ref('quiz/players/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
-  db.ref('quiz/sp/players/'+myId).set({name:myName,score:0,state:'waiting',total:20});
-  db.ref('quiz/tb/members/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null});
+document.getElementById('name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')joinGame();});
+function setErr(msg){document.getElementById('join-err').textContent=msg;}
+
+/* ══════════════════════════════════════════════════
+   GO TO LOBBY — registers + attaches listeners
+   This is THE critical function. Called on:
+   - First join (from finishJoin)
+   - Return from saved localStorage (from checkSaved)
+   ══════════════════════════════════════════════════ */
+function goLobby(){
+  document.getElementById('lobby-name').textContent=myName;
+  sc('s-lobby');
+  registerPlayer();        /* ALWAYS write to Firebase */
+  setupGlobalListeners();  /* Idempotent — only runs once */
+  attachPlayerListener();  /* Re-attaches to current myId */
 }
 
-document.getElementById('name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
-function setErr(msg){document.getElementById('join-err').textContent=msg;}
-function goLobby(){document.getElementById('lobby-name').textContent=myName;sc('s-lobby');setupListeners();}
+/* ══════════════════════════════════════════════════
+   LISTENERS — split into global (once) + personal (per-login)
+   ══════════════════════════════════════════════════ */
+var _globalSet=false;
+var _myRef=null;
 
-/* ── LISTENERS ── */
-let _listenersSetup=false;
-function setupListeners(){
-  if(!db||_listenersSetup)return;
-  _listenersSetup=true;
+/* Global listeners — quiz state, mode, questions, teams, speed. Set up ONCE. */
+function setupGlobalListeners(){
+  if(!db||_globalSet)return;
+  _globalSet=true;
 
-  /* FIX: session token watcher — force logout on new session */
-  db.ref('quiz/sessionToken').on('value',s=>{
-    const token=s.val();
+  /* Session token — force logout when organiser starts/ends */
+  db.ref('quiz/sessionToken').on('value',function(s){
+    var token=s.val();
     if(!token)return;
     if(knownSessionToken===null){knownSessionToken=token;return;}
     if(token!==knownSessionToken){
       knownSessionToken=token;
       clearTimers();
+      if(_myRef){try{_myRef.off();}catch(e){}_myRef=null;}
       myId=null;myName='';
-      localStorage.removeItem('ija_pid');localStorage.removeItem('ija_name');
+      localStorage.removeItem('ija_pid');
+      localStorage.removeItem('ija_name');
       spRunning=false;spCurrentSessionId=null;
       sc('s-loggedout');
     }
   });
 
-  db.ref('quiz/mode').on('value',s=>{mode=s.val()||'standard';updateModePill();});
+  /* Mode */
+  db.ref('quiz/mode').on('value',function(s){mode=s.val()||'standard';updateModePill();});
 
-  /* FIX: Standard state handler — only react when mode=standard OR for universal states */
-  db.ref('quiz/state').on('value',s=>{
-    const state=s.val()||'lobby';
+  /* State — universal + standard-specific */
+  db.ref('quiz/state').on('value',function(s){
+    var state=s.val()||'lobby';
     gs.state=state;
-    /* Universal states that all modes must handle */
     if(state==='ended'){clearTimers();sc('s-ended');return;}
     if(state==='leaderboard'){t('lb-h','Leaderboard');renderLB(players);sc('s-lb');return;}
     if(state==='section_leaderboard'){t('lb-h','Section Board');renderLB(players);sc('s-lb');return;}
-    /* Standard-only states */
     if(mode==='standard')handleStdState(state);
   });
 
-  db.ref('quiz/currentQuestion').on('value',s=>{
+  /* Standard question data */
+  db.ref('quiz/currentQuestion').on('value',function(s){
     gs.cq=s.val();
     if(mode==='standard'&&gs.state==='question_active')renderQ();
-    if(mode==='standard'&&gs.state==='reveal'&&gs.cq?.answer)applyReveal('q-opts',gs.cq.answer);
+    if(mode==='standard'&&gs.state==='reveal'&&gs.cq&&gs.cq.answer)applyReveal('q-opts',gs.cq.answer);
   });
-  db.ref('quiz/sectionIntro').on('value',s=>{gs.intro=s.val();if(mode==='standard'&&gs.state==='section_intro')renderSecIntro();});
-  db.ref('quiz/sections').on('value',s=>{if(s.val())gs.sections=toArray(s.val());});
-  db.ref('quiz/players/'+myId).on('value',s=>{
-    const p=s.val();if(!p)return;gs.me=p;
-    t('lobby-score',p.score||0);t('final-pts',p.score||0);
-  });
-  db.ref('quiz/players').on('value',s=>{
+  db.ref('quiz/sectionIntro').on('value',function(s){gs.intro=s.val();if(mode==='standard'&&gs.state==='section_intro')renderSecIntro();});
+  db.ref('quiz/sections').on('value',function(s){if(s.val())gs.sections=toArray(s.val());});
+
+  /* All players (for leaderboard) */
+  db.ref('quiz/players').on('value',function(s){
     players=s.val()||{};
-    if(['leaderboard','section_leaderboard'].includes(gs.state))renderLB(players);
+    if(gs.state==='leaderboard'||gs.state==='section_leaderboard')renderLB(players);
   });
 
   /* Team Battle */
-  db.ref('quiz/tb').on('value',s=>{
-    const d=s.val();if(!d)return;
+  db.ref('quiz/tb').on('value',function(s){
+    var d=s.val();if(!d)return;
     tb.state=d.state||'lobby';
     tb.teams=toArray(d.teams)||tb.teams;
     tb.cq=d.cq||null;
-    tb.lock=d.lock||null;  /* FIX: was missing in some versions */
-    tb.activeTeam=d.activeTeam??0;
+    tb.lock=d.lock||null;
+    tb.activeTeam=d.activeTeam!=null?d.activeTeam:0;
     tb.isBonus=!!d.isBonus;
     tb.members=d.members||{};
     if(mode==='team')handleTB();
   });
 
   /* Speed Battle */
-  db.ref('quiz/sp').on('value',s=>{
-    const d=s.val();if(!d)return;
+  db.ref('quiz/sp').on('value',function(s){
+    var d=s.val();if(!d)return;
     sp.state=d.state||'lobby';
     sp.activePid=d.activePid||null;
     sp.session=d.session||null;
@@ -644,6 +666,23 @@ function setupListeners(){
     if(mode==='speed')handleSP();
   });
 }
+
+/* Personal listener — tracks THIS player's score/state. Re-attached on each login. */
+function attachPlayerListener(){
+  if(!db||!myId)return;
+  /* Detach old listener if switching player IDs */
+  if(_myRef){try{_myRef.off();}catch(e){}}
+  _myRef=db.ref('quiz/players/'+myId);
+  _myRef.on('value',function(s){
+    var p=s.val();if(!p)return;
+    gs.me=p;
+    t('lobby-score',p.score||0);
+    t('final-pts',p.score||0);
+  });
+}
+
+/* Run on page load */
+checkSaved();
 
 function updateModePill(){
   const el=document.getElementById('mode-pill');
