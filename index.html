@@ -700,12 +700,22 @@ function attachPlayerListener(){
 /* checkSaved() is called inside auth flow above */
 
 function updateModePill(){
-  const el=document.getElementById('mode-pill');
-  const m={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}}[mode]||{cls:'standard',txt:'📝 Standard'};
-  el.className='mode-pill '+m.cls;el.textContent=m.txt;
-  /* FIX: when mode switches, show correct idle screen */
-  if(mode==='team'&&(gs.state==='lobby'||gs.state==='idle'))renderTBIdle('Waiting…','Stand by for next question');
-  if(mode==='speed')handleSP();
+  var pill=document.getElementById('mode-pill');
+  var map={standard:{cls:'standard',txt:'📝 Standard'},team:{cls:'team',txt:'⚔️ Team Battle'},speed:{cls:'speed',txt:'⚡ Speed Battle'}};
+  var m=map[mode]||map.standard;
+  pill.className='mode-pill '+m.cls;pill.textContent=m.txt;
+  /* Navigate to the correct idle screen for the new mode */
+  if(mode==='standard'){
+    /* Show standard lobby — handleStdState handles the rest */
+    if(gs.state==='lobby')sc('s-lobby');
+    else handleStdState(gs.state);
+  }
+  else if(mode==='team'){
+    handleTB();
+  }
+  else if(mode==='speed'){
+    handleSP();
+  }
 }
 
 /* ── STANDARD STATE HANDLER ── */
