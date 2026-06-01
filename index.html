@@ -249,6 +249,99 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 .final-pts{font-size:3.5rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--gold);line-height:1}
 .final-lbl{font-size:.78rem;color:var(--text2);margin-top:6px}
 .mute-btn{position:fixed;top:10px;right:10px;z-index:200;background:rgba(15,3,6,.7);border:1px solid rgba(192,21,42,.25);border-radius:8px;padding:5px 9px;font-size:1rem;cursor:pointer;color:var(--text2)}
+/* ═══ VISUAL ENHANCEMENTS ═══ */
+
+/* Animated gradient background on all screens */
+.screen::before{content:'';position:absolute;inset:0;z-index:-1;opacity:.4;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(192,21,42,.25),transparent 70%)}
+
+/* Glassmorphism cards */
+.join-card,.result-card,.team-result-card,.sp-done-card,.logout-card{
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  box-shadow:0 0 60px rgba(192,21,42,.12),0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* Join button pulse glow */
+.join-btn{
+  box-shadow:0 6px 20px rgba(192,21,42,.3),0 0 0 0 rgba(232,25,47,.4);
+  animation:joinPulse 2.5s ease-in-out infinite;
+}
+@keyframes joinPulse{0%,100%{box-shadow:0 6px 20px rgba(192,21,42,.3),0 0 0 0 rgba(232,25,47,.4)}50%{box-shadow:0 8px 28px rgba(192,21,42,.5),0 0 0 8px rgba(232,25,47,0)}}
+.join-btn:active{animation:none}
+
+/* Join input glow effect */
+.join-inp{transition:all .3s cubic-bezier(.4,0,.2,1)}
+.join-inp:focus{background:rgba(255,255,255,.06);border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(245,197,24,.12),0 0 30px rgba(245,197,24,.06)!important}
+
+/* Lobby crest enhanced glow */
+.lc-inner{box-shadow:0 0 40px rgba(192,21,42,.2);transition:box-shadow .3s}
+.lobby-h{text-shadow:0 0 30px rgba(245,197,24,.3)}
+
+/* Question card floating glow */
+.q-text-card{box-shadow:0 4px 30px rgba(0,0,0,.3);transition:box-shadow .3s}
+.q-text-card::after{content:'';position:absolute;inset:0;border-radius:20px;opacity:0;transition:opacity .3s;background:radial-gradient(ellipse at 50% 0%,rgba(245,197,24,.06),transparent 60%)}
+
+/* Option buttons — enhanced press feedback */
+.opt-btn{transition:transform .15s cubic-bezier(.4,0,.2,1),box-shadow .2s,background .2s,border-color .2s;will-change:transform}
+.opt-btn:active:not(:disabled){transform:scale(.93)!important;transition-duration:.08s}
+.opt-btn.sel{box-shadow:0 0 25px rgba(255,255,255,.08)!important}
+
+/* Timer urgency — red glow pulse */
+.ctimer-box.low{box-shadow:0 0 20px rgba(239,68,68,.3)}
+
+/* Waiting check bounce */
+.wait-check{filter:drop-shadow(0 0 30px rgba(34,197,94,.5)) drop-shadow(0 0 60px rgba(34,197,94,.2))}
+.wait-card{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* Result — correct confetti effect */
+.result-card.correct{box-shadow:0 0 80px rgba(34,197,94,.15),0 20px 60px rgba(0,0,0,.4)}
+.result-card.correct::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 0deg,transparent,rgba(34,197,94,.03),transparent,rgba(245,197,24,.03),transparent);animation:resultSpin 8s linear infinite;pointer-events:none}
+@keyframes resultSpin{to{transform:rotate(360deg)}}
+
+/* Result — wrong subtle red glow */
+.result-card.wrong{box-shadow:0 0 60px rgba(192,21,42,.15),0 20px 60px rgba(0,0,0,.4)}
+
+/* Team idle — team badge enhanced */
+.tsm{transition:transform .2s,box-shadow .2s}
+.tsm:hover{transform:translateY(-2px)}
+.tsm-score{text-shadow:0 0 20px rgba(245,197,24,.3)}
+
+/* Team question header gradient shimmer */
+.team-q-hdr::before{content:'';position:absolute;top:0;left:-100%;width:200%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.02),transparent);animation:headerShimmer 4s ease-in-out infinite;pointer-events:none}
+@keyframes headerShimmer{0%{transform:translateX(-50%)}100%{transform:translateX(50%)}}
+
+/* Speed battle — bolt glow */
+.sp-bolt{text-shadow:0 0 40px rgba(249,115,22,.5)}
+.sp-timer.low{box-shadow:0 0 20px rgba(239,68,68,.3)}
+
+/* Speed done card */
+.sp-done-card{box-shadow:0 0 60px rgba(249,115,22,.12),0 20px 60px rgba(0,0,0,.4)}
+.sp-done-bolt{animation:iconFloat 3s ease-in-out infinite}
+
+/* Leaderboard — enhanced row entrance */
+.lb-item{transition:transform .15s,box-shadow .15s}
+.lb-item:nth-child(1){box-shadow:0 0 30px rgba(245,197,24,.1)}
+.lb-score{text-shadow:0 0 12px rgba(245,197,24,.3)}
+
+/* Ended — trophy glow */
+.trophy-end{text-shadow:0 0 60px rgba(245,197,24,.4)}
+.final-box{box-shadow:0 0 40px rgba(192,21,42,.1);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.final-pts{text-shadow:0 0 40px rgba(245,197,24,.4)}
+
+/* Speed feedback overlay */
+.sp-feedback.show .sp-fb-ico{filter:drop-shadow(0 0 30px currentColor)}
+
+/* Smooth screen transition */
+.screen{transition:opacity .2s ease}
+
+/* Mute button refinement */
+.mute-btn{transition:all .2s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.mute-btn:hover{background:rgba(15,3,6,.9);border-color:rgba(192,21,42,.5)}
+
+/* Mode pill glow */
+.mode-pill{box-shadow:0 0 15px rgba(0,0,0,.2)}
+
+/* Section intro — name entrance */
+.sec-name{filter:drop-shadow(0 0 20px rgba(245,197,24,.2))}
 </style>
 </head>
 <body>
