@@ -523,13 +523,18 @@ function joinGame(){
   const name=gv('name-inp');
   if(!name){setErr('Enter your name');return;}
   if(!db){setErr('Not connected to Firebase');return;}
-  myName=name;
-  /* Generate a unique ID without needing Firebase Auth */
-  myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  localStorage.setItem('ija_pid',myId);
-  localStorage.setItem('ija_name',myName);
-  registerPlayer();
-  goLobby();
+  /* Check for duplicate name */
+  db.ref('quiz/players').once('value',function(snap){
+    const existing=snap.val()||{};
+    const dupe=Object.values(existing).some(function(p){return p.name&&p.name.toLowerCase()===name.toLowerCase();});
+    if(dupe){setErr('That name is already taken. Try adding your surname or initial.');return;}
+    myName=name;
+    myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    localStorage.setItem('ija_pid',myId);
+    localStorage.setItem('ija_name',myName);
+    registerPlayer();
+    goLobby();
+  });
 }
 
 function doRelogin(){
