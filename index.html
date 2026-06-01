@@ -5,6 +5,7 @@
 <title>IJA Quiz — Competitor</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -494,8 +495,17 @@ try{
   });
   db=firebase.database();
   try{db.ref('/.info/serverTimeOffset').on('value',function(s){_serverOffset=s.val()||0;});}catch(e){}
+  /* Authenticate anonymously so database reads/writes are allowed */
+  firebase.auth().signInAnonymously().then(function(){
+    console.log('Auth OK');
+    checkSaved();
+  }).catch(function(err){
+    console.warn('Anonymous auth failed, trying without auth:',err.message);
+    checkSaved(); /* Try anyway — works if rules are open */
+  });
 }catch(e){
   console.error('Firebase init error:',e);
+  /* Join screen still visible via class="screen on" */
 }
 
 /* ══════════════════════════════════════════════════
@@ -681,8 +691,7 @@ function attachPlayerListener(){
   });
 }
 
-/* Run on page load */
-checkSaved();
+/* checkSaved() is called inside auth flow above */
 
 function updateModePill(){
   const el=document.getElementById('mode-pill');
