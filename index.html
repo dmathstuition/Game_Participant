@@ -353,6 +353,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
   <div class="team-idle-card">
     <div class="team-idle-ico">⚔️</div>
     <div class="team-idle-h" id="ti-h">Team Battle</div>
+    <div id="ti-my-team" style="display:none;border-radius:14px;padding:8px 20px;font-size:.88rem;font-weight:800;text-align:center;margin-bottom:4px;border:2px solid"></div>
     <div style="color:var(--text2);font-size:.82rem" id="ti-sub">Waiting for next question…</div>
     <div class="team-scores-mini" id="ti-scores"></div>
     <div class="spin-ring" style="border-top-color:var(--red-b)"></div>
@@ -473,6 +474,7 @@ let gs={state:'lobby',cq:null,intro:null,me:{},sections:[]};
 let players={};
 let timerInt=null,hasAnswered=false,qStart=0,myLastAnswer=null,myTimeTaken=0,lastTickSec=-1;
 let tb={state:'lobby',teams:[{name:'Red Eagles',score:0},{name:'Blue Lions',score:0}],cq:null,lock:null,activeTeam:0,isBonus:false,members:{}};
+let myTeam=-1; /* -1=unassigned, 0=team1, 1=team2 — set by organizer */
 let tbTimerInt=null,tbAnswered=false,tbLastAnswer=null,tbTimeTaken=0,tbQStart=0,tbLastTick=-1;
 let sp={state:'lobby',activePid:null,session:null,players:{}};
 let spTimerInt=null,spCurrentSessionId=null,spRunning=false,spScore=0;
@@ -517,7 +519,7 @@ function registerPlayer(){
   if(!db||!myId||!myName)return;
   db.ref('quiz/players/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
   db.ref('quiz/sp/players/'+myId).update({name:myName,score:0,state:'waiting',total:20});
-  db.ref('quiz/tb/members/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null});
+  db.ref('quiz/tb/members/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,team:-1});
 }
 
 /* Check if returning player (saved in localStorage) */
@@ -663,6 +665,10 @@ function setupGlobalListeners(){
     tb.activeTeam=d.activeTeam!=null?d.activeTeam:0;
     tb.isBonus=!!d.isBonus;
     tb.members=d.members||{};
+    /* Track my team assignment */
+    if(myId&&tb.members[myId]!=null&&tb.members[myId].team!=null){
+      myTeam=tb.members[myId].team;
+    }
     if(mode==='team')handleTB();
   });
 
@@ -775,59 +781,114 @@ function showResult(correct){
   gs.state='result';sc('s-result');
 }
 
-/* ── TEAM BATTLE ── */
+/* ── TEAM BATTLE — with team assignment gating ── */
 function handleTB(){
-  const state=tb.state;
-  if(state==='lobby'||state==='idle'){renderTBIdle('Waiting…','Stand by for next question');sc('s-team-idle');}
-  else if(state==='active'||state==='bonus'){if(tb.cq)renderTBQ(tb.cq,state==='bonus');else sc('s-team-idle');}
-  else if(state==='reveal'){applyReveal('tq-opts',tb.cq?.answer);sc('s-team-q');setTimeout(()=>showTBResult(tb.cq?.answer),1500);}
+  var state=tb.state;
+  if(state==='lobby'||state==='idle'){
+    renderTBIdle('Waiting…','Stand by for next question');
+  }
+  else if(state==='active'||state==='bonus'){
+    if(!tb.cq){renderTBIdle('Waiting…','Loading question…');return;}
+    var isBonus=state==='bonus';
+    var isMyTeamsTurn=(tb.cq.activeTeam===myTeam);
+    if(myTeam===-1){
+      /* Unassigned player — show waiting screen */
+      renderTBIdle('Not Assigned','Ask the organiser to assign you to a team');
+    } else if(isMyTeamsTurn){
+      /* MY team's turn — show the question */
+      renderTBQ(tb.cq,isBonus);
+    } else {
+      /* Other team's turn — show waiting with info */
+      var otherName=tb.teams[tb.cq.activeTeam]?tb.teams[tb.cq.activeTeam].name:'Opponents';
+      renderTBIdle(otherName+' Answering',isBonus?'Bonus round for '+otherName:'Your team answers next if they miss it');
+    }
+  }
+  else if(state==='reveal'){
+    if(tb.cq&&tb.cq.answer){
+      applyReveal('tq-opts',tb.cq.answer);
+      sc('s-team-q');
+      setTimeout(function(){showTBResult(tb.cq.answer);},1500);
+    }
+  }
   else if(state==='ended'){clearTimers();sc('s-ended');}
 }
 
 function renderTBIdle(h,sub){
-  t('ti-h',h);document.getElementById('ti-sub').textContent=sub;
-  document.getElementById('ti-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
+  t('ti-h',h);
+  document.getElementById('ti-sub').textContent=sub;
+  /* Show team identity badge */
+  var myBadge=document.getElementById('ti-my-team');
+  if(myTeam>=0&&tb.teams[myTeam]){
+    var tName=tb.teams[myTeam].name;
+    var col=myTeam===0?'#e8192f':'#2563eb';
+    var bgc=myTeam===0?'rgba(232,25,47,.12)':'rgba(37,99,235,.12)';
+    myBadge.style.display='block';
+    myBadge.style.borderColor=col;
+    myBadge.style.background=bgc;
+    myBadge.style.color=col;
+    myBadge.textContent='You are on '+tName;
+  } else {
+    myBadge.style.display='none';
+  }
+  /* Always show both team scores */
+  document.getElementById('ti-scores').innerHTML=tb.teams.map(function(t2,i){
+    var isMe=i===myTeam;
+    var border=isMe?'border-width:2px':'';
+    return '<div class="tsm t'+i+'" style="'+border+'"><div class="tsm-name">'+esc(t2.name)+(isMe?' (YOU)':'')+'</div><div class="tsm-score">'+(t2.score||0)+'</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>';
+  }).join('');
   sc('s-team-idle');
 }
 
 function renderTBQ(q,isBonus){
-  const tIdx=tb.activeTeam,tn=tb.teams[tIdx]?.name||'?';
+  var tIdx=tb.activeTeam;
+  var tn=tb.teams[tIdx]?tb.teams[tIdx].name:'?';
   document.getElementById('tq-hdr').className='team-q-hdr '+(isBonus?'bonus':'t'+tIdx);
-  const badge=document.getElementById('tq-team-badge');badge.className='team-badge '+(isBonus?'bonus':'t'+tIdx);badge.textContent=(isBonus?'⚡ BONUS — ':'')+tn;
-  const mb=document.getElementById('tq-marks-badge');mb.className='marks-badge '+(isBonus?'b':'n');mb.textContent=isBonus?'2 marks (bonus)':'5 marks';
-  const el=document.getElementById('tq-text');el.textContent=q.text;
+  var badge=document.getElementById('tq-team-badge');
+  badge.className='team-badge '+(isBonus?'bonus':'t'+tIdx);
+  badge.textContent=(isBonus?'⚡ BONUS — ':'')+tn;
+  var mb=document.getElementById('tq-marks-badge');
+  mb.className='marks-badge '+(isBonus?'b':'n');
+  mb.textContent=isBonus?'2 marks (bonus)':'5 marks';
+  var el=document.getElementById('tq-text');el.textContent=q.text;
   el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
-  document.getElementById('tq-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="tbob-${o}" onclick="pickTB('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
+  document.getElementById('tq-opts').innerHTML=ALPHA.map(function(o){
+    return '<button class="opt-btn '+o+'" id="tbob-'+o+'" onclick="pickTB(\''+o+'\')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">'+o+'</div><div class="opt-text-wrap">'+esc(q.options[o])+'</div></div></button>';
+  }).join('');
   tbAnswered=false;tbLastAnswer=null;tbQStart=q.startTime;tbTimeTaken=0;tbLastTick=-1;
   if(isBonus)playBonus();
-  startTBTimer(q.timeLimit,q.startTime);sc('s-team-q');
+  startTBTimer(q.timeLimit,q.startTime);
+  sc('s-team-q');
 }
 
 function pickTB(opt){
   if(tbAnswered||tb.state==='reveal')return;
+  /* Block if not on active team */
+  if(myTeam!==-1&&myTeam!==tb.activeTeam)return;
   tbAnswered=true;tbLastAnswer=opt;
-  tbTimeTaken=Math.min((serverNow()-tbQStart)/1000,tb.cq?.timeLimit||30);
+  tbTimeTaken=Math.min((serverNow()-tbQStart)/1000,(tb.cq?tb.cq.timeLimit:30)||30);
   if(db&&myId){
     db.ref('quiz/tb/members/'+myId+'/lastAnswer').set(opt);
     db.ref('quiz/tb/members/'+myId+'/answered').set(true);
-    /* Transaction ensures only first answer wins */
-    db.ref('quiz/tb/lock').transaction(cur=>{
-      if(cur===null)return{pid:myId,answer:opt,teamIdx:tb.activeTeam,timeTaken:tbTimeTaken};
-      return cur;
+    /* Lock transaction — only accepts answers from the active team */
+    db.ref('quiz/tb/lock').transaction(function(cur){
+      if(cur!==null)return cur; /* already locked */
+      return{pid:myId,answer:opt,teamIdx:myTeam,timeTaken:tbTimeTaken};
     });
   }
-  lockOpts('tq-opts');document.getElementById('tbob-'+opt)?.classList.add('sel');
+  lockOpts('tq-opts');
+  var sel=document.getElementById('tbob-'+opt);if(sel)sel.classList.add('sel');
 }
 
 function showTBResult(correct){
-  const lock=tb.lock,marks=tb.cq?.isBonus?2:5;
-  const myLocked=lock&&lock.pid===myId&&lock.answer===correct;
-  const teamGot=lock&&lock.answer===correct;
-  const chip=document.getElementById('tr-chip');let bar='';
+  var lock=tb.lock;
+  var marks=(tb.cq&&tb.cq.isBonus)?2:5;
+  var myLocked=lock&&lock.pid===myId&&lock.answer===correct;
+  var teamGot=lock&&lock.answer===correct&&lock.teamIdx===myTeam;
+  var chip=document.getElementById('tr-chip');var bar='';
   if(myLocked){
-    t('tr-ico','🎉');setcls('tr-verdict',`Correct! +${marks} marks`,'result-verdict ok');
+    t('tr-ico','🎉');setcls('tr-verdict','Correct! +'+marks+' marks','result-verdict ok');
     t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';
-    t('tr-lbl',tb.cq?.isBonus?'bonus marks':'team marks');chip.style.display='none';
+    t('tr-lbl',(tb.cq&&tb.cq.isBonus)?'bonus marks':'team marks');chip.style.display='none';
     bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';playCorrect();
   }else if(teamGot){
     t('tr-ico','👍');setcls('tr-verdict','Team scored!','result-verdict ok');
@@ -837,24 +898,27 @@ function showTBResult(correct){
   }else{
     t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');
     t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';
-    t('tr-lbl',correct?`Correct was: ${correct}`:'');
-    if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(tb.cq?.options?.[correct]||'');}
+    t('tr-lbl',correct?'Correct was: '+correct:'');
+    if(correct){var copt=(tb.cq&&tb.cq.options)?tb.cq.options[correct]:'';chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(copt);}
     else chip.style.display='none';
     bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();
   }
   document.getElementById('tr-top-bar').style.background=bar;
-  document.getElementById('tr-scores').innerHTML=tb.teams.map((t2,i)=>`<div class="tsm t${i}"><div class="tsm-name">${esc(t2.name)}</div><div class="tsm-score">${t2.score||0}</div><div style="font-size:.68rem;color:var(--text2)">marks</div></div>`).join('');
+  document.getElementById('tr-scores').innerHTML=tb.teams.map(function(t2,i){
+    var isMe=i===myTeam;
+    return '<div class="tsm t'+i+'">'+'<div class="tsm-name">'+esc(t2.name)+(isMe?' (YOU)':'')+'</div>'+'<div class="tsm-score">'+(t2.score||0)+'</div>'+'<div style="font-size:.68rem;color:var(--text2)">marks</div></div>';
+  }).join('');
   sc('s-team-result');
 }
 
 function startTBTimer(limit,startTime){
-  clearTBTimer();const el=document.getElementById('tb-ctimer'),fill=document.getElementById('tb-t-fill');
+  clearTBTimer();var el=document.getElementById('tb-ctimer'),fill=document.getElementById('tb-t-fill');
   function tick(){
-    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
+    var left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
     fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);
-    const low=left<=5;el.className='ctimer-box'+(low?' low':'');
-    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':tb.cq?.isBonus?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';
-    const s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}
+    var low=left<=5;el.className='ctimer-box'+(low?' low':'');
+    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':(tb.cq&&tb.cq.isBonus)?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';
+    var s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}
     if(left<=0)clearTBTimer();
   }
   tick();tbTimerInt=setInterval(tick,250);
