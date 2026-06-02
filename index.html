@@ -439,6 +439,7 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
     <div class="result-pts-big" id="r-pts"></div>
     <div class="result-pts-lbl" id="r-lbl"></div>
     <div class="result-total-card"><span class="rtc-lbl">Total Score</span><span class="rtc-val" id="r-total">0</span></div>
+    <div id="r-streak"></div>
   </div>
 </div>
 
@@ -566,6 +567,7 @@ let knownSessionToken=null;
 let gs={state:'lobby',cq:null,intro:null,me:{},sections:[]};
 let players={};
 let timerInt=null,hasAnswered=false,qStart=0,myLastAnswer=null,myTimeTaken=0,lastTickSec=-1;
+let myStreak=0; /* consecutive correct answers */
 let tb={state:'lobby',teams:[{name:'Red Eagles',score:0},{name:'Blue Lions',score:0}],cq:null,lock:null,activeTeam:0,isBonus:false,members:{}};
 let myTeam=-1; /* -1=unassigned, 0=team1, 1=team2 — set by organizer */
 let tbTimerInt=null,tbAnswered=false,tbLastAnswer=null,tbTimeTaken=0,tbQStart=0,tbLastTick=-1;
@@ -607,12 +609,35 @@ try{
    JOIN FLOW
    ══════════════════════════════════════════════════ */
 
-/* Write player to all 3 registries in Firebase */
+/* Write player to Firebase — preserves score if player already exists */
 function registerPlayer(){
   if(!db||!myId||!myName)return;
-  db.ref('quiz/players/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
-  db.ref('quiz/sp/players/'+myId).update({name:myName,score:0,state:'waiting',total:20});
-  db.ref('quiz/tb/members/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,team:-1});
+  /* Standard: check if exists first */
+  db.ref('quiz/players/'+myId).once('value').then(function(snap){
+    if(snap.exists()){
+      /* Player exists — only update name, don't reset score */
+      db.ref('quiz/players/'+myId).update({name:myName});
+    } else {
+      /* New player — set everything fresh */
+      db.ref('quiz/players/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
+    }
+  }).catch(function(){
+    /* Fallback if check fails — set with score 0 */
+    db.ref('quiz/players/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,lastCorrect:null,sectionScores:{0:0,1:0,2:0}});
+  });
+  /* Speed + Team: same pattern */
+  db.ref('quiz/sp/players/'+myId).once('value').then(function(snap){
+    if(snap.exists()) db.ref('quiz/sp/players/'+myId).update({name:myName});
+    else db.ref('quiz/sp/players/'+myId).set({name:myName,score:0,state:'waiting',total:20});
+  }).catch(function(){
+    db.ref('quiz/sp/players/'+myId).update({name:myName,score:0,state:'waiting',total:20});
+  });
+  db.ref('quiz/tb/members/'+myId).once('value').then(function(snap){
+    if(snap.exists()) db.ref('quiz/tb/members/'+myId).update({name:myName});
+    else db.ref('quiz/tb/members/'+myId).set({name:myName,score:0,answered:false,lastAnswer:null,team:-1});
+  }).catch(function(){
+    db.ref('quiz/tb/members/'+myId).update({name:myName,score:0,answered:false,lastAnswer:null,team:-1});
+  });
 }
 
 /* Check if returning player (saved in localStorage) */
@@ -861,14 +886,23 @@ function autoTimeout(){
 }
 
 function showResult(correct){
-  const tl=gs.cq?.timeLimit||30,did=!!myLastAnswer,ok=did&&myLastAnswer===correct;
-  const pts=ok?Math.round(1000-Math.min(myTimeTaken/tl,1)*500):0;
-  const card=document.getElementById('result-card'),chip=document.getElementById('r-chip');
+  var tl=(gs.cq&&gs.cq.timeLimit)?gs.cq.timeLimit:30;
+  var did=!!myLastAnswer, ok=did&&myLastAnswer===correct;
+  var pts=ok?Math.round(1000-Math.min(myTimeTaken/tl,1)*500):0;
+  var card=document.getElementById('result-card'),chip=document.getElementById('r-chip');
+  /* Streak tracking */
+  if(ok){myStreak++;}else{myStreak=0;}
+  var streakHTML='';
+  if(myStreak>=2){
+    streakHTML='<div style="margin-top:12px;padding:8px 16px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:12px;font-family:\'JetBrains Mono\',monospace;font-size:.88rem;font-weight:800;color:var(--orange)">🔥 '+myStreak+' in a row!</div>';
+  }
   if(!did){
     card.className='result-card noanswer';t('r-ico','⏰');setcls('r-verdict',"Time's Up!",'result-verdict na');
     t('r-pts','0');document.getElementById('r-pts').className='result-pts-big na';t('r-lbl','no answer submitted');
+    var copt=(gs.cq&&gs.cq.options&&gs.cq.options[correct])?gs.cq.options[correct]:'';
     chip.style.cssText='display:inline-flex;background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);color:var(--gold)';
-    chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playNoAnswer();
+    chip.textContent='✓ Correct: '+correct+' — '+esc(copt);playNoAnswer();
+    myStreak=0;
   }else if(ok){
     card.className='result-card correct';t('r-ico','🎉');setcls('r-verdict','Correct! 🔥','result-verdict ok');
     t('r-pts','+'+pts);document.getElementById('r-pts').className='result-pts-big ok';
@@ -876,11 +910,16 @@ function showResult(correct){
   }else{
     card.className='result-card wrong';t('r-ico','😢');setcls('r-verdict','Wrong Answer','result-verdict no');
     t('r-pts','0');document.getElementById('r-pts').className='result-pts-big no';t('r-lbl','no points');
+    var copt2=(gs.cq&&gs.cq.options&&gs.cq.options[correct])?gs.cq.options[correct]:'';
     chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';
-    chip.textContent='✓ Correct: '+correct+' — '+esc(gs.cq?.options?.[correct]||'');playWrong();
+    chip.textContent='✓ Correct: '+correct+' — '+esc(copt2);playWrong();
   }
-  t('r-total',(gs.me?.score||0)+(ok?pts:0));
-  setTimeout(()=>{if(gs.me?.score!==undefined)t('r-total',gs.me.score);},2000);
+  /* Streak badge */
+  var streakEl=document.getElementById('r-streak');
+  if(streakEl) streakEl.innerHTML=streakHTML;
+  var meScore=(gs.me&&gs.me.score)?gs.me.score:0;
+  t('r-total',meScore+(ok?pts:0));
+  setTimeout(function(){if(gs.me&&gs.me.score!==undefined)t('r-total',gs.me.score);},2000);
   gs.state='result';sc('s-result');
 }
 
