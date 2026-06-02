@@ -753,7 +753,7 @@ function setupGlobalListeners(){
     var state=s.val()||'lobby';
     gs.state=state;
     if(state==='ended'){clearTimers();sc('s-ended');return;}
-    if(state==='leaderboard'){t('lb-h','Leaderboard');renderLB(players);sc('s-lb');return;}
+    if(state==='leaderboard'){t('lb-h','Leaderboard');renderLB(mode==='speed'?sp.players:players);sc('s-lb');return;}
     if(state==='section_leaderboard'){t('lb-h','Section Board');renderLB(players);sc('s-lb');return;}
     if(mode==='standard')handleStdState(state);
   });
@@ -770,7 +770,7 @@ function setupGlobalListeners(){
   /* All players (for leaderboard) */
   db.ref('quiz/players').on('value',function(s){
     players=s.val()||{};
-    if(gs.state==='leaderboard'||gs.state==='section_leaderboard')renderLB(players);
+    if(gs.state==='leaderboard'||gs.state==='section_leaderboard')renderLB(mode==='speed'?sp.players:players);
   });
 
   /* Team Battle */
@@ -1075,8 +1075,8 @@ function handleSP(){
     if(newId!==spCurrentSessionId){spCurrentSessionId=newId;spRunning=false;bootSpeed(sp.session);}
   }else{
     clearSpeedTimer();
-    const runner=sp.activePid?sp.players[sp.activePid]:null;
-    document.getElementById('sp-wait-msg').textContent=runner?.name?`${esc(runner.name)} is running…`:'Waiting for your turn…';
+    var runner=sp.activePid?(sp.players[sp.activePid]||null):null;
+    document.getElementById('sp-wait-msg').textContent=(runner&&runner.name)?esc(runner.name)+' is running…':'Waiting for your turn…';
     sc('s-speed-wait');
     if(sp.state==='lobby'&&!sp.activePid){spRunning=false;spCurrentSessionId=null;}
   }
@@ -1131,14 +1131,16 @@ function clearSpeedTimer(){clearInterval(spTimerInt);spTimerInt=null;}
 
 function finishSpeed(score,total){
   spRunning=false;clearSpeedTimer();
-  const pct=total>0?Math.round((score/total)*100):0;
+  var pct=total>0?Math.round((score/total)*100):0;
   t('sd-correct',score+' / '+total);t('sd-score',score);t('sd-acc',pct+'%');
   if(db&&myId){
-    const upd={};
-    upd[`quiz/sp/players/${myId}/score`]=score;
-    upd[`quiz/sp/players/${myId}/state`]='done';
-    upd[`quiz/sp/players/${myId}/total`]=total;
-    upd['quiz/sp/state']='lobby';upd['quiz/sp/activePid']=null;upd['quiz/sp/session']=null;
+    var upd={};
+    upd['quiz/sp/players/'+myId+'/score']=score;
+    upd['quiz/sp/players/'+myId+'/state']='done';
+    upd['quiz/sp/players/'+myId+'/total']=total;
+    upd['quiz/sp/state']='lobby';
+    upd['quiz/sp/activePid']=null;
+    upd['quiz/sp/session']=null;
     db.ref().update(upd);
   }
   sc('s-speed-done');
