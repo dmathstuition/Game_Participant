@@ -982,6 +982,7 @@ function showResult(correct){
 
 /* ── TEAM BATTLE — with team assignment gating ── */
 function handleTB(){
+  if(gs.state==='leaderboard'||gs.state==='section_leaderboard'||gs.state==='ended')return;
   var state=tb.state;
   if(state==='lobby'||state==='idle'){
     renderTBIdle('Waiting…','Stand by for next question');
@@ -1127,6 +1128,7 @@ function clearTBTimer(){clearInterval(tbTimerInt);tbTimerInt=null;}
 /* ── SPEED BATTLE ── */
 function handleSP(){
   if(mode!=='speed')return;
+  if(gs.state==='leaderboard'||gs.state==='section_leaderboard'||gs.state==='ended')return;
   if(sp.state==='running'&&sp.activePid===myId&&sp.session){
     const newId=sp.session.sessionId;
     if(newId!==spCurrentSessionId){spCurrentSessionId=newId;spRunning=false;bootSpeed(sp.session);}
