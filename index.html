@@ -347,6 +347,8 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 <body>
 <canvas id="bg"></canvas>
 <button class="mute-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
+<div id="broadcast-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:500;background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;padding:12px 16px;font-size:.88rem;font-weight:700;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:slideDown .3s ease"></div>
+<style>@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}</style>
 
 <div class="screen" id="s-setup">
   <div class="setup-box">
@@ -727,6 +729,7 @@ var _myRef=null;
 function setupGlobalListeners(){
   if(!db||_globalSet)return;
   _globalSet=true;
+  setupBroadcastListener();
 
   /* Session token — force logout when organiser starts/ends */
   db.ref('quiz/sessionToken').on('value',function(s){
@@ -753,7 +756,10 @@ function setupGlobalListeners(){
     var state=s.val()||'lobby';
     gs.state=state;
     if(state==='ended'){clearTimers();sc('s-ended');return;}
-    if(state==='leaderboard'){t('lb-h','Leaderboard');renderLB(mode==='speed'?sp.players:players);sc('s-lb');return;}
+    if(state==='leaderboard'){
+      if(mode==='team'){t('lb-h','Team Standings');renderTBLeaderboard();sc('s-lb');return;}
+      t('lb-h','Leaderboard');renderLB(mode==='speed'?sp.players:players);sc('s-lb');return;
+    }
     if(state==='section_leaderboard'){t('lb-h','Section Board');renderLB(players);sc('s-lb');return;}
     if(mode==='standard')handleStdState(state);
   });
@@ -770,7 +776,10 @@ function setupGlobalListeners(){
   /* All players (for leaderboard) */
   db.ref('quiz/players').on('value',function(s){
     players=s.val()||{};
-    if(gs.state==='leaderboard'||gs.state==='section_leaderboard')renderLB(mode==='speed'?sp.players:players);
+    if(gs.state==='leaderboard'||gs.state==='section_leaderboard'){
+      if(mode==='team')renderTBLeaderboard();
+      else renderLB(mode==='speed'?sp.players:players);
+    }
   });
 
   /* Team Battle */
@@ -787,7 +796,10 @@ function setupGlobalListeners(){
     if(myId&&tb.members[myId]!=null&&tb.members[myId].team!=null){
       myTeam=tb.members[myId].team;
     }
-    if(mode==='team')handleTB();
+    if(mode==='team'){
+      if(gs.state==='leaderboard')renderTBLeaderboard();
+      else handleTB();
+    }
   });
 
   /* Speed Battle */
@@ -812,6 +824,51 @@ function attachPlayerListener(){
     gs.me=p;
     t('lobby-score',p.score||0);
     t('final-pts',p.score||0);
+  });
+  setupPresence();
+}
+
+/* ══ PRESENCE / HEARTBEAT — tells organizer who's online ══ */
+var _presenceSet=false;
+function setupPresence(){
+  if(!db||!myId)return;
+  /* Monitor connection state */
+  var connRef=db.ref('.info/connected');
+  connRef.off(); /* avoid duplicates */
+  connRef.on('value',function(snap){
+    if(snap.val()===true&&myId){
+      var pRef=db.ref('quiz/players/'+myId);
+      /* When this client disconnects, mark offline */
+      pRef.child('online').onDisconnect().set(false);
+      pRef.child('lastSeen').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+      /* Mark online now */
+      pRef.update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP});
+    }
+  });
+  /* Heartbeat every 10s while page is open */
+  if(!_presenceSet){
+    _presenceSet=true;
+    setInterval(function(){
+      if(db&&myId&&document.visibilityState!=='hidden'){
+        db.ref('quiz/players/'+myId).update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP});
+      }
+    },10000);
+  }
+}
+
+/* ══ BROADCAST BANNER — organizer messages ══ */
+function setupBroadcastListener(){
+  if(!db)return;
+  db.ref('quiz/broadcast').on('value',function(s){
+    var b=s.val();
+    var banner=document.getElementById('broadcast-banner');
+    if(!banner)return;
+    if(b&&b.text&&b.text.trim()){
+      banner.textContent='📢 '+b.text;
+      banner.style.display='block';
+    }else{
+      banner.style.display='none';
+    }
   });
 }
 
@@ -1172,6 +1229,26 @@ function applyReveal(id,correct){
 function renderLB(source){
   const sorted=Object.entries(source).map(([id,p])=>({id,...p})).sort((a,b)=>(b.score||0)-(a.score||0));
   document.getElementById('lb-list').innerHTML=sorted.slice(0,10).map((p,i)=>`<div class="lb-item ${p.id===myId?'me':''}" style="animation-delay:${i*.07}s"><div class="lb-rank">${MEDALS[i]||i+1}</div><div class="lb-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="lb-name">${esc(p.name||'?')}</div>${p.id===myId?'<span class="lb-me-badge">YOU</span>':''}<div class="lb-score">${p.score||0}</div></div>`).join('');
+}
+
+/* Team standings leaderboard for competitor — reads from tb.teams */
+function renderTBLeaderboard(){
+  var sorted=tb.teams.map(function(t2,i){return{name:t2.name,score:t2.score||0,idx:i};}).sort(function(a,b){return (b.score||0)-(a.score||0);});
+  var html=sorted.map(function(t2,i){
+    var isMine=t2.idx===myTeam;
+    var col=t2.idx===0?'#e8192f':'#2563eb';
+    var bgc=t2.idx===0?'rgba(232,25,47,.1)':'rgba(37,99,235,.1)';
+    return '<div class="lb-item" style="animation-delay:'+(i*0.1)+'s;border:2px solid '+(isMine?col:'transparent')+';background:'+bgc+'">'
+      +'<div class="lb-rank">'+(MEDALS[i]||(i+1))+'</div>'
+      +'<div class="lb-name" style="font-size:1.05rem;font-weight:800;color:'+col+'">'+esc(t2.name)+(isMine?' (YOUR TEAM)':'')+'</div>'
+      +'<div class="lb-score">'+(t2.score||0)+'</div></div>';
+  }).join('');
+  /* Also show this player's personal contribution */
+  if(myId&&tb.members&&tb.members[myId]){
+    var myScore=tb.members[myId].score||0;
+    html+='<div style="text-align:center;margin-top:16px;padding:12px;background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.25);border-radius:12px;font-size:.85rem"><span style="color:var(--text2)">Your contribution: </span><span style="font-family:\'JetBrains Mono\',monospace;font-weight:800;color:var(--gold)">'+myScore+' marks</span></div>';
+  }
+  document.getElementById('lb-list').innerHTML=html;
 }
 
 /* ── AUDIO AUTO-UNLOCK ── */
