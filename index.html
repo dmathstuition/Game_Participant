@@ -283,7 +283,9 @@ input:focus{border-color:var(--red-b);box-shadow:0 0 0 3px rgba(232,25,47,.12)}
 /* Option buttons — enhanced press feedback */
 .opt-btn{transition:transform .15s cubic-bezier(.4,0,.2,1),box-shadow .2s,background .2s,border-color .2s;will-change:transform}
 .opt-btn:active:not(:disabled){transform:scale(.93)!important;transition-duration:.08s}
-.opt-btn.sel{box-shadow:0 0 25px rgba(255,255,255,.08)!important}
+.opt-btn.sel{box-shadow:0 0 0 3px rgba(255,255,255,.5),0 0 30px rgba(255,255,255,.25)!important;transform:scale(1.02)!important;animation:selPulse 1.2s ease-in-out infinite}
+@keyframes selPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,255,255,.5),0 0 30px rgba(255,255,255,.25)}50%{box-shadow:0 0 0 4px rgba(255,255,255,.7),0 0 45px rgba(255,255,255,.4)}}
+.opt-btn.sel .opt-letter{background:#fff!important;color:#0a0a0a!important}
 
 /* Timer urgency — red glow pulse */
 .ctimer-box.low{box-shadow:0 0 20px rgba(239,68,68,.3)}
@@ -1004,6 +1006,7 @@ function handleTB(){
     }
   }
   else if(state==='reveal'){
+    _tbRenderedKey=null;
     if(tb.cq&&tb.cq.answer){
       applyReveal('tq-opts',tb.cq.answer);
       sc('s-team-q');
@@ -1039,7 +1042,17 @@ function renderTBIdle(h,sub){
   sc('s-team-idle');
 }
 
+var _tbRenderedKey=null;
 function renderTBQ(q,isBonus){
+  /* Skip rebuild if the SAME question is already on screen — otherwise
+     answering (which writes to quiz/tb) would re-fire this and wipe the
+     selected-answer glow and re-enable the buttons. */
+  var key=(q.qIdx!=null?q.qIdx:q.startTime)+'|'+(isBonus?'b':'n')+'|'+tb.activeTeam;
+  if(key===_tbRenderedKey && document.getElementById('s-team-q').classList.contains('on')){
+    sc('s-team-q');
+    return;
+  }
+  _tbRenderedKey=key;
   var tIdx=tb.activeTeam;
   var tn=tb.teams[tIdx]?tb.teams[tIdx].name:'?';
   document.getElementById('tq-hdr').className='team-q-hdr '+(isBonus?'bonus':'t'+tIdx);
@@ -1082,26 +1095,47 @@ function pickTB(opt){
 function showTBResult(correct){
   var lock=tb.lock;
   var marks=(tb.cq&&tb.cq.isBonus)?2:5;
-  var myLocked=lock&&lock.pid===myId&&lock.answer===correct;
-  var teamGot=lock&&lock.answer===correct&&lock.teamIdx===myTeam;
+  /* Which team answered, and did they get it right? */
+  var answeringTeam = lock ? lock.teamIdx : tb.activeTeam;
+  var answeringName = (tb.teams[answeringTeam]) ? tb.teams[answeringTeam].name : 'Team';
+  var gotRight = lock && lock.answer===correct;
+  var iAnswered = lock && lock.pid===myId;
+  var onAnsweringTeam = (myTeam===answeringTeam);
   var chip=document.getElementById('tr-chip');var bar='';
-  if(myLocked){
-    t('tr-ico','🎉');setcls('tr-verdict','Correct! +'+marks+' marks','result-verdict ok');
+
+  if(gotRight){
+    /* The answering team scored */
+    if(iAnswered){
+      t('tr-ico','🎉');setcls('tr-verdict','Correct! +'+marks,'result-verdict ok');
+      t('tr-lbl','you scored for your team');
+    }else if(onAnsweringTeam){
+      t('tr-ico','👍');setcls('tr-verdict','Team scored! +'+marks,'result-verdict ok');
+      t('tr-lbl','your teammate got it');
+    }else{
+      /* Waiting team — see the opponent's result */
+      t('tr-ico','✓');setcls('tr-verdict',esc(answeringName)+' scored','result-verdict ok');
+      t('tr-lbl','they earned +'+marks+' marks');
+    }
     t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';
-    t('tr-lbl',(tb.cq&&tb.cq.isBonus)?'bonus marks':'team marks');chip.style.display='none';
-    bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';playCorrect();
-  }else if(teamGot){
-    t('tr-ico','👍');setcls('tr-verdict','Team scored!','result-verdict ok');
-    t('tr-pts','+'+marks);document.getElementById('tr-pts').className='result-pts-big ok';
-    t('tr-lbl','your teammate got it');chip.style.display='none';
+    chip.style.display='none';
     bar='linear-gradient(90deg,#065f46,var(--green),#065f46)';
+    if(iAnswered)playCorrect();
   }else{
-    t('tr-ico','😢');setcls('tr-verdict','Missed','result-verdict no');
+    /* The answering team missed (wrong answer) or nobody answered (timeout) */
+    var copt=(tb.cq&&tb.cq.options&&correct)?tb.cq.options[correct]:'';
+    var didAnswer = !!lock;
+    if(onAnsweringTeam){
+      t('tr-ico','😢');setcls('tr-verdict',didAnswer?'Wrong Answer':'Time\u2019s Up','result-verdict no');
+      t('tr-lbl','no marks this round');
+    }else{
+      t('tr-ico','✗');setcls('tr-verdict',esc(answeringName)+(didAnswer?' missed':' ran out of time'),'result-verdict no');
+      t('tr-lbl','they earned no marks');
+    }
     t('tr-pts','0');document.getElementById('tr-pts').className='result-pts-big no';
-    t('tr-lbl',correct?'Correct was: '+correct:'');
-    if(correct){var copt=(tb.cq&&tb.cq.options)?tb.cq.options[correct]:'';chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(copt);}
+    if(correct){chip.style.cssText='display:inline-flex;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)';chip.textContent='✓ '+correct+' — '+esc(copt);}
     else chip.style.display='none';
-    bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';playWrong();
+    bar='linear-gradient(90deg,var(--red-d),var(--red-b),var(--red-d))';
+    if(onAnsweringTeam)playWrong();
   }
   document.getElementById('tr-top-bar').style.background=bar;
   document.getElementById('tr-scores').innerHTML=tb.teams.map(function(t2,i){
