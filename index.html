@@ -981,9 +981,10 @@ function oralCompTimer(){
 /* ── STANDARD STATE HANDLER ── */
 function handleStdState(state){
   clearTimer();
+  if(state!=='question_active')_qRenderedKey=null;
   if(state==='lobby'){hasAnswered=false;myLastAnswer=null;sc('s-lobby');}
   else if(state==='section_intro'){hasAnswered=false;myLastAnswer=null;renderSecIntro();sc('s-section');}
-  else if(state==='question_active'){hasAnswered=false;myLastAnswer=null;myTimeTaken=0;lastTickSec=-1;renderQ();sc('s-question');}
+  else if(state==='question_active'){myTimeTaken=0;lastTickSec=-1;renderQ();sc('s-question');}
   else if(state==='time_up'){
     lockOpts('q-opts');
     if(!hasAnswered){hasAnswered=true;if(db&&myId)db.ref('quiz/players/'+myId+'/answered').set(true);}
@@ -996,8 +997,17 @@ function handleStdState(state){
 
 function renderSecIntro(){const i=gs.intro||{};t('sec-name',i.name||'Section');t('sec-count',(i.totalQ||0)+' questions');}
 
+var _qRenderedKey=null;
 function renderQ(){
   if(!gs.cq)return;const q=gs.cq;
+  /* Idempotency guard: if this exact question is already on screen and timing,
+     do nothing — prevents repeated listener fires from rebuilding the DOM and
+     restarting the countdown (a source of the malfunctioning timer). */
+  var key=(q.index)+'|'+(q.startTime)+'|'+(q.sectionIndex||0);
+  if(key===_qRenderedKey && document.getElementById('s-question') && document.getElementById('s-question').classList.contains('on')){
+    return;
+  }
+  _qRenderedKey=key;
   qStart=q.startTime;hasAnswered=false;myLastAnswer=null;
   t('q-num-tag','Q'+(q.index+1)+' / '+(q.total||'?'));
   const sn=toArray(gs.sections)[q.sectionIndex]?.name||('Section '+((q.sectionIndex||0)+1));
@@ -1005,7 +1015,7 @@ function renderQ(){
   const el=document.getElementById('q-text');el.textContent=q.text;
   el.className='q-text-big'+(q.text.length>100?' vlong':q.text.length>60?' long':'');
   document.getElementById('q-opts').innerHTML=ALPHA.map(o=>`<button class="opt-btn ${o}" id="ob-${o}" onclick="pickStd('${o}')"><div class="opt-top"></div><div class="opt-inner"><div class="opt-letter">${o}</div><div class="opt-text-wrap">${esc(q.options[o])}</div></div></button>`).join('');
-  startTimer(q.timeLimit,q.startTime,'ctimer','t-fill',()=>{if(!hasAnswered)autoTimeout();});
+  startTimer(q.timeLimit,q.startTime,'ctimer','t-fill',()=>{if(!hasAnswered&&gs.state==='question_active')autoTimeout();});
 }
 
 function pickStd(opt){
@@ -1030,7 +1040,7 @@ function autoTimeout(){
 function showResult(correct){
   var tl=(gs.cq&&gs.cq.timeLimit)?gs.cq.timeLimit:30;
   var did=!!myLastAnswer, ok=did&&myLastAnswer===correct;
-  var pts=ok?Math.round(1000-Math.min(myTimeTaken/tl,1)*500):0;
+  var pts=ok?(10+Math.round((1-Math.min(myTimeTaken/tl,1))*5)):0;
   var card=document.getElementById('result-card'),chip=document.getElementById('r-chip');
   /* Streak tracking */
   if(ok){myStreak++;}else{myStreak=0;}
@@ -1177,7 +1187,7 @@ function pickTB(opt){
 
 function showTBResult(correct){
   var lock=tb.lock;
-  var marks=(tb.cq&&tb.cq.isBonus)?2:5;
+  var marks=(tb.cq&&tb.cq.isBonus)?5:10;
   /* Which team answered, and did they get it right? */
   var answeringTeam = lock ? lock.teamIdx : tb.activeTeam;
   var answeringName = (tb.teams[answeringTeam]) ? tb.teams[answeringTeam].name : 'Team';
@@ -1230,11 +1240,14 @@ function showTBResult(correct){
 
 function startTBTimer(limit,startTime){
   clearTBTimer();var el=document.getElementById('tb-ctimer'),fill=document.getElementById('tb-t-fill');
+  limit=(+limit>0)?+limit:30;
+  var srvEl=(serverNow()-startTime)/1000;if(!isFinite(srvEl)||srvEl<0)srvEl=0;if(srvEl>limit)srvEl=limit;
+  var anchor=Date.now();
   function tick(){
-    var left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
-    fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);
-    var low=left<=5;el.className='ctimer-box'+(low?' low':'');
-    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':(tb.cq&&tb.cq.isBonus)?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';
+    var left=Math.max(0,limit-(srvEl+(Date.now()-anchor)/1000)),pct=Math.max(0,Math.min(1,left/limit));
+    if(fill)fill.style.width=(pct*100)+'%';if(el)el.textContent=Math.ceil(left);
+    var low=left<=5;if(el)el.className='ctimer-box'+(low?' low':'');
+    if(fill)fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':(tb.cq&&tb.cq.isBonus)?'linear-gradient(90deg,#92400e,var(--orange))':'linear-gradient(90deg,var(--red-d),var(--red-b))';
     var s=Math.ceil(left);if(low&&s!==tbLastTick&&s>0){tbLastTick=s;playTick();}
     if(left<=0)clearTBTimer();
   }
@@ -1288,10 +1301,13 @@ function pickSpeed(opt,correct,idx,total){
 
 function startSpeedTimer(limit,startTime,correct,qs,idx,total){
   clearSpeedTimer();const el=document.getElementById('sp-timer'),fill=document.getElementById('sp-prog');
+  limit=(+limit>0)?+limit:15;
+  var srvEl=(serverNow()-startTime)/1000;if(!isFinite(srvEl)||srvEl<0)srvEl=0;if(srvEl>limit)srvEl=limit;
+  var anchor=Date.now();
   function tick(){
-    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
-    el.textContent=Math.ceil(left);fill.style.width=(pct*100)+'%';
-    const low=left<=5;el.className='sp-timer'+(low?' low':'');
+    const left=Math.max(0,limit-(srvEl+(Date.now()-anchor)/1000)),pct=Math.max(0,Math.min(1,left/limit));
+    if(el)el.textContent=Math.ceil(left);if(fill)fill.style.width=(pct*100)+'%';
+    const low=left<=5;if(el)el.className='sp-timer'+(low?' low':'');
     if(low&&Math.ceil(left)>0)playTick();
     if(left<=0){
       clearSpeedTimer();
@@ -1325,19 +1341,29 @@ function finishSpeed(score,total){
 /* ── TIMER (uses serverNow for accuracy) ── */
 function startTimer(limit,startTime,timerId,fillId,onExpire){
   clearTimer();const el=document.getElementById(timerId),fill=document.getElementById(fillId);
+  limit=(+limit>0)?+limit:30;
+  /* Compute how far in we already are ONCE (clamped), then tick down using the
+     LOCAL clock. This is immune to per-tick server-offset jitter that was
+     causing premature "time up" and a malfunctioning display on some devices. */
+  var srvEl=(serverNow()-startTime)/1000;
+  if(!isFinite(srvEl)||srvEl<0)srvEl=0;
+  if(srvEl>limit)srvEl=limit;
+  var anchor=Date.now();
   function tick(){
-    const left=Math.max(0,limit-(serverNow()-startTime)/1000),pct=left/limit;
-    fill.style.width=(pct*100)+'%';el.textContent=Math.ceil(left);
+    var elapsed=srvEl+(Date.now()-anchor)/1000;
+    var left=Math.max(0,limit-elapsed),pct=Math.max(0,Math.min(1,left/limit));
+    if(fill)fill.style.width=(pct*100)+'%';
+    if(el)el.textContent=Math.ceil(left);
     const low=left<=8,mid=left<=15;
-    fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';
-    el.className='ctimer-box'+(low?' low':'');
+    if(fill)fill.style.background=low?'linear-gradient(90deg,#7a0a18,#ef4444)':mid?'linear-gradient(90deg,#92400e,#f59e0b)':'linear-gradient(90deg,var(--red-d),var(--red-b))';
+    if(el)el.className='ctimer-box'+(low?' low':'');
     const s=Math.ceil(left);if(low&&s!==lastTickSec&&s>0){lastTickSec=s;playTick();}
     if(left<=0){clearTimer();if(onExpire)onExpire();}
   }
   tick();timerInt=setInterval(tick,250);
 }
 function clearTimer(){clearInterval(timerInt);timerInt=null;}
-function clearTimers(){clearTimer();clearTBTimer();clearSpeedTimer();}
+function clearTimers(){clearTimer();clearTBTimer();clearSpeedTimer();if(_ocInt){clearInterval(_ocInt);_ocInt=null;}}
 function lockOpts(id){document.querySelectorAll('#'+id+' button').forEach(b=>b.disabled=true);clearTimer();}
 function applyReveal(id,correct){
   const prefix=id==='q-opts'?'ob-':'tbob-';
