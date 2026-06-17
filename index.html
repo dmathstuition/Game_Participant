@@ -952,6 +952,12 @@ function handleOralComp(){
     q.textContent=oral.cq.text;
     tm.style.display='block';
     oralCompTimer();
+  }else if(oral.state==='await'&&oral.cq){
+    var awg=oral.cq.activeGroup||0;var an=g[awg]?g[awg].name:'';
+    var ao=1-(awg);var aon=g[ao]?g[ao].name:'the other group';
+    status.innerHTML='<span style="color:#ff8080">✗ WRONG — '+esc(an)+' missed</span>';
+    q.textContent='May pass to '+aon+'…';
+    tm.style.display='none';
   }else if(oral.state==='reveal'&&oral.lastResult){
     var r=oral.lastResult;
     status.innerHTML=r.correct?'<span style="color:var(--green)">'+esc(r.groupName||'')+' scored +'+r.points+'</span>':'<span style="color:#ff8080">'+esc(r.groupName||'')+(r.bothMissed?' — both missed':' missed')+'</span>';
